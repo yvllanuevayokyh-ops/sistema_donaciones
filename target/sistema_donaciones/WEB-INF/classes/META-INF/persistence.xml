@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<persistence xmlns="http://xmlns.jcp.org/xml/ns/persistence"
+             xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+             xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/persistence
+             http://xmlns.jcp.org/xml/ns/persistence/persistence_2_2.xsd"
+             version="2.2">
+
+    <persistence-unit name="sistemadonacionesPU" transaction-type="RESOURCE_LOCAL">
+        <provider>org.hibernate.jpa.HibernatePersistenceProvider</provider>
+
+        <class>com.donaciones.model.Pais</class>
+        <class>com.donaciones.model.RolUsuario</class>
+        <class>com.donaciones.model.UsuarioSistema</class>
+        <class>com.donaciones.model.Permiso</class>
+        <class>com.donaciones.model.RolPermiso</class>
+        <class>com.donaciones.model.RolPermisoId</class>
+        <class>com.donaciones.model.Donante</class>
+        <class>com.donaciones.model.Campania</class>
+        <class>com.donaciones.model.Donacion</class>
+        <class>com.donaciones.model.ComunidadVulnerable</class>
+        <class>com.donaciones.model.Voluntario</class>
+        <class>com.donaciones.model.EstadoEntrega</class>
+        <class>com.donaciones.model.EntregaDonacion</class>
+
+        <properties>
+            <property name="javax.persistence.jdbc.driver" value="com.mysql.cj.jdbc.Driver"/>
+            <property name="javax.persistence.jdbc.url"
+                      value="jdbc:mysql://localhost:3306/sistema_donaciones?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=UTC&amp;characterEncoding=UTF-8"/>
+            <property name="javax.persistence.jdbc.user" value="root"/>
+            <property name="javax.persistence.jdbc.password" value=""/>
+
+            <property name="hibernate.dialect" value="org.hibernate.dialect.MySQL5InnoDBDialect"/>
+            <property name="hibernate.show_sql" value="true"/>
+            <property name="hibernate.format_sql" value="true"/>
+            <property name="hibernate.hbm2ddl.auto" value="none"/>
+        </properties>
+    </persistence-unit>
+</persistence>
