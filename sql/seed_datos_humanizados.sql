@@ -476,3 +476,37 @@ SELECT (SELECT id_donante FROM donante WHERE email = 'camila.rojas@email.com' LI
        'Contribucion para abastecimiento mensual de alimentos de primera necesidad', 1
 FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM donacion WHERE descripcion = 'Contribucion para abastecimiento mensual de alimentos de primera necesidad');
+
+-- ------------------------------
+-- Normalizacion de fechas (sin nulos y consistentes)
+-- ------------------------------
+UPDATE campania
+SET fecha_inicio = COALESCE(fecha_inicio, CURDATE() - INTERVAL 30 DAY),
+    fecha_fin    = COALESCE(fecha_fin,    CURDATE() + INTERVAL 180 DAY)
+WHERE fecha_inicio IS NULL OR fecha_fin IS NULL;
+
+UPDATE voluntario
+SET fecha_ingreso = COALESCE(fecha_ingreso, CURDATE() - INTERVAL 10 DAY)
+WHERE fecha_ingreso IS NULL;
+
+UPDATE entrega_donacion
+SET fecha_programada = COALESCE(fecha_programada, NOW())
+WHERE fecha_programada IS NULL;
+
+UPDATE entrega_donacion
+SET fecha_entrega = CASE
+    WHEN id_estado_entrega = 1 THEN DATE_ADD(fecha_programada, INTERVAL 7 DAY)
+    WHEN id_estado_entrega = 2 THEN DATE_ADD(fecha_programada, INTERVAL 2 DAY)
+    ELSE COALESCE(fecha_programada, NOW())
+END
+WHERE fecha_entrega IS NULL;
+
+UPDATE entrega_donacion
+SET fecha_entrega = CASE
+    WHEN id_estado_entrega = 1 THEN DATE_ADD(fecha_programada, INTERVAL 7 DAY)
+    WHEN id_estado_entrega = 2 THEN DATE_ADD(fecha_programada, INTERVAL 2 DAY)
+    ELSE fecha_programada
+END
+WHERE fecha_programada IS NOT NULL
+  AND fecha_entrega IS NOT NULL
+  AND fecha_entrega < fecha_programada;
