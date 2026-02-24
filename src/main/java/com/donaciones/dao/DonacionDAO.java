@@ -11,7 +11,6 @@ import javax.persistence.EntityTransaction;
 import javax.persistence.ParameterMode;
 import javax.persistence.Query;
 import javax.persistence.StoredProcedureQuery;
-import org.hibernate.procedure.ProcedureCall;
 
 public class DonacionDAO {
 
@@ -377,13 +376,4 @@ public class DonacionDAO {
         return value == null ? "" : String.valueOf(value);
     }
 
-    private void enableNullParam(StoredProcedureQuery sp, String paramName) {
-        try {
-            sp.unwrap(ProcedureCall.class)
-                    .getParameterRegistration(paramName)
-                    .enablePassingNulls(true);
-        } catch (RuntimeException ignored) {
-            // Fallback: if provider does not support this, keep default behavior.
-        }
-    }
 }
