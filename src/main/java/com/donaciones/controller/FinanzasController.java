@@ -4,12 +4,21 @@ import com.donaciones.dao.FinanzasDAO;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.ss.usermodel.DataFormat;
+import org.apache.poi.ss.usermodel.Row;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
@@ -79,6 +88,42 @@ public class FinanzasController {
         return "finanzas/index";
     }
 
+    @GetMapping("/finanzas/excel")
+    public void descargarExcel(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
+        if (!isAuthenticated(request, response)) {
+            return;
+        }
+        if (isDonanteRole(request) || isComunidadRole(request)) {
+            request.getSession().setAttribute("mensaje", "Acceso restringido");
+            response.sendRedirect(request.getContextPath() + "/home");
+            return;
+        }
+
+        Object[] resumen;
+        List<Object[]> porCampania;
+        List<Object[]> porComunidad;
+        try {
+            resumen = finanzasDAO.resumenGeneral();
+            porCampania = safeList(finanzasDAO.resumenPorCampania());
+            porComunidad = safeList(finanzasDAO.resumenPorComunidad());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            request.getSession().setAttribute("mensaje", "Error: no se pudo generar el Excel de finanzas");
+            response.sendRedirect(request.getContextPath() + "/finanzas");
+            return;
+        }
+
+        String filename = "finanzas_" + LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")) + ".xlsx";
+        response.setContentType("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+        response.setHeader("Content-Disposition", "attachment; filename=\"" + filename + "\"");
+
+        try (Workbook wb = buildWorkbook(resumen, porCampania, porComunidad)) {
+            wb.write(response.getOutputStream());
+            response.flushBuffer();
+        }
+    }
+
     private boolean isAuthenticated(HttpServletRequest request, HttpServletResponse response) throws IOException {
         if (request.getSession(false) == null || request.getSession(false).getAttribute("usuarioNombre") == null) {
             response.sendRedirect(request.getContextPath() + "/login");
@@ -144,6 +189,180 @@ public class FinanzasController {
         } catch (Exception ex) {
             return String.valueOf(value);
         }
+    }
+
+    private Workbook buildWorkbook(Object[] resumen, List<Object[]> porCampania, List<Object[]> porComunidad) {
+        Workbook wb = new XSSFWorkbook();
+        DataFormat dataFormat = wb.createDataFormat();
+
+        CellStyle headerStyle = wb.createCellStyle();
+        org.apache.poi.ss.usermodel.Font headerFont = wb.createFont();
+        headerFont.setBold(true);
+        headerStyle.setFont(headerFont);
+
+        CellStyle moneyStyle = wb.createCellStyle();
+        moneyStyle.setDataFormat(dataFormat.getFormat("#,##0.00"));
+
+        CellStyle dateStyle = wb.createCellStyle();
+        dateStyle.setDataFormat(dataFormat.getFormat("dd/MM/yyyy HH:mm"));
+
+        buildResumenSheet(wb, resumen, headerStyle, moneyStyle, dateStyle);
+        buildCampaniaSheet(wb, porCampania, headerStyle, moneyStyle, dateStyle);
+        buildComunidadSheet(wb, porComunidad, headerStyle, moneyStyle, dateStyle);
+        return wb;
+    }
+
+    private void buildResumenSheet(Workbook wb, Object[] resumen, CellStyle headerStyle, CellStyle moneyStyle, CellStyle dateStyle) {
+        Sheet sheet = wb.createSheet("Resumen");
+        int rowIndex = 0;
+
+        Row titleRow = sheet.createRow(rowIndex++);
+        Cell titleCell = titleRow.createCell(0);
+        titleCell.setCellValue("Reporte financiero");
+        titleCell.setCellStyle(headerStyle);
+
+        Row genRow = sheet.createRow(rowIndex++);
+        genRow.createCell(0).setCellValue("Generado");
+        genRow.createCell(1).setCellValue(LocalDateTime.now().format(DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss")));
+
+        rowIndex++;
+
+        BigDecimal totalRecaudado = resumen != null && resumen.length > 0 ? toBD(resumen[0]) : BigDecimal.ZERO;
+        BigDecimal totalEntregado = resumen != null && resumen.length > 1 ? toBD(resumen[1]) : BigDecimal.ZERO;
+        BigDecimal saldo = totalRecaudado.subtract(totalEntregado);
+        int totalDonaciones = resumen != null && resumen.length > 2 ? toInt(resumen[2]) : 0;
+        int totalEntregas = resumen != null && resumen.length > 3 ? toInt(resumen[3]) : 0;
+        Date ultimaDonacion = resumen != null && resumen.length > 4 ? toDate(resumen[4]) : null;
+        Date ultimaEntrega = resumen != null && resumen.length > 5 ? toDate(resumen[5]) : null;
+
+        rowIndex = addMoneyRow(sheet, rowIndex, "Total recaudado", totalRecaudado.doubleValue(), moneyStyle);
+        rowIndex = addMoneyRow(sheet, rowIndex, "Total entregado", totalEntregado.doubleValue(), moneyStyle);
+        rowIndex = addMoneyRow(sheet, rowIndex, "Saldo disponible", saldo.doubleValue(), moneyStyle);
+        rowIndex = addIntRow(sheet, rowIndex, "Total donaciones", totalDonaciones);
+        rowIndex = addIntRow(sheet, rowIndex, "Total entregas", totalEntregas);
+        rowIndex = addDateRow(sheet, rowIndex, "Ultima donacion", ultimaDonacion, dateStyle);
+        addDateRow(sheet, rowIndex, "Ultima entrega", ultimaEntrega, dateStyle);
+
+        sheet.autoSizeColumn(0);
+        sheet.autoSizeColumn(1);
+    }
+
+    private void buildCampaniaSheet(Workbook wb, List<Object[]> rows, CellStyle headerStyle, CellStyle moneyStyle, CellStyle dateStyle) {
+        Sheet sheet = wb.createSheet("Campanias");
+        String[] headers = new String[]{
+                "Orden", "Campania", "Meta", "Recaudado", "Saldo", "Donaciones", "Ult. donacion", "Ult. entrega"
+        };
+        Row headerRow = sheet.createRow(0);
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        int rowIndex = 1;
+        for (Object[] row : rows) {
+            Row excelRow = sheet.createRow(rowIndex);
+            excelRow.createCell(0).setCellValue(rowIndex);
+            excelRow.createCell(1).setCellValue(toStringValue(row, 1));
+            setMoneyCell(excelRow.createCell(2), rowValue(row, 2), moneyStyle);
+            setMoneyCell(excelRow.createCell(3), rowValue(row, 3), moneyStyle);
+            setMoneyCell(excelRow.createCell(4), rowValue(row, 4), moneyStyle);
+            excelRow.createCell(5).setCellValue(toInt(rowValue(row, 5)));
+            setDateCell(excelRow.createCell(6), toDate(rowValue(row, 6)), dateStyle);
+            setDateCell(excelRow.createCell(7), toDate(rowValue(row, 7)), dateStyle);
+            rowIndex++;
+        }
+
+        for (int i = 0; i < headers.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+    }
+
+    private void buildComunidadSheet(Workbook wb, List<Object[]> rows, CellStyle headerStyle, CellStyle moneyStyle, CellStyle dateStyle) {
+        Sheet sheet = wb.createSheet("Comunidades");
+        String[] headers = new String[]{
+                "Orden", "Comunidad", "Beneficiarios", "Entregas", "Completadas", "Monto recibido", "Ult. programada", "Ult. entrega"
+        };
+        Row headerRow = sheet.createRow(0);
+        for (int i = 0; i < headers.length; i++) {
+            Cell cell = headerRow.createCell(i);
+            cell.setCellValue(headers[i]);
+            cell.setCellStyle(headerStyle);
+        }
+
+        int rowIndex = 1;
+        for (Object[] row : rows) {
+            Row excelRow = sheet.createRow(rowIndex);
+            excelRow.createCell(0).setCellValue(rowIndex);
+            excelRow.createCell(1).setCellValue(toStringValue(row, 1));
+            excelRow.createCell(2).setCellValue(toInt(rowValue(row, 2)));
+            excelRow.createCell(3).setCellValue(toInt(rowValue(row, 3)));
+            excelRow.createCell(4).setCellValue(toInt(rowValue(row, 4)));
+            setMoneyCell(excelRow.createCell(5), rowValue(row, 5), moneyStyle);
+            setDateCell(excelRow.createCell(6), toDate(rowValue(row, 6)), dateStyle);
+            setDateCell(excelRow.createCell(7), toDate(rowValue(row, 7)), dateStyle);
+            rowIndex++;
+        }
+
+        for (int i = 0; i < headers.length; i++) {
+            sheet.autoSizeColumn(i);
+        }
+    }
+
+    private int addMoneyRow(Sheet sheet, int rowIndex, String label, double value, CellStyle moneyStyle) {
+        Row row = sheet.createRow(rowIndex);
+        row.createCell(0).setCellValue(label);
+        Cell valueCell = row.createCell(1);
+        valueCell.setCellValue(value);
+        valueCell.setCellStyle(moneyStyle);
+        return rowIndex + 1;
+    }
+
+    private int addIntRow(Sheet sheet, int rowIndex, String label, int value) {
+        Row row = sheet.createRow(rowIndex);
+        row.createCell(0).setCellValue(label);
+        row.createCell(1).setCellValue(value);
+        return rowIndex + 1;
+    }
+
+    private int addDateRow(Sheet sheet, int rowIndex, String label, Date value, CellStyle dateStyle) {
+        Row row = sheet.createRow(rowIndex);
+        row.createCell(0).setCellValue(label);
+        setDateCell(row.createCell(1), value, dateStyle);
+        return rowIndex + 1;
+    }
+
+    private void setMoneyCell(Cell cell, Object rawValue, CellStyle style) {
+        cell.setCellValue(toBD(rawValue).doubleValue());
+        cell.setCellStyle(style);
+    }
+
+    private void setDateCell(Cell cell, Date date, CellStyle style) {
+        if (date != null) {
+            cell.setCellValue(date);
+            cell.setCellStyle(style);
+        } else {
+            cell.setCellValue("");
+        }
+    }
+
+    private Object rowValue(Object[] row, int index) {
+        if (row == null || index < 0 || index >= row.length) {
+            return null;
+        }
+        return row[index];
+    }
+
+    private String toStringValue(Object[] row, int index) {
+        Object value = rowValue(row, index);
+        return value == null ? "" : String.valueOf(value);
+    }
+
+    private Date toDate(Object value) {
+        if (value instanceof Date) {
+            return (Date) value;
+        }
+        return null;
     }
 }
 

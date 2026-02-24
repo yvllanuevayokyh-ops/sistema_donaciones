@@ -36,6 +36,9 @@
                 <p class="muted">Orden campanias: <strong th:text="${ordenCampania}"></strong> | Orden comunidades: <strong th:text="${ordenComunidad}"></strong></p>
                 <p class="muted">Fecha reporte: <strong th:text="${fechaReporte}"></strong> | Hora reporte: <strong th:text="${horaReporte}"></strong></p>
             </div>
+            <div class="top-actions">
+                <a class="btn-new btn-alt" th:href="@{/finanzas/excel}">Descargar Excel</a>
+            </div>
         </div>
 
         <section class="stats finance-stats">
