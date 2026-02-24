@@ -1,11 +1,11 @@
 ﻿-- Backup funcional consolidado
--- Generado: 2026-02-23 20:10:41
+-- Generado: 2026-02-23 20:18:16
 -- Base: sistema_donaciones
 USE sistema_donaciones;
 
 
 -- ============================================================
--- SOURCE: sql/roles_permisos_base.sql
+-- SOURCE: sql\roles_permisos_base.sql
 -- ============================================================
 
 CREATE TABLE IF NOT EXISTS permiso (
@@ -58,7 +58,7 @@ SET permitido = 1
 WHERE id_rol = 1;
 
 -- ============================================================
--- SOURCE: sql/sp_institucion_base.sql
+-- SOURCE: sql\sp_institucion_base.sql
 -- ============================================================
 
 ALTER TABLE donante
@@ -225,7 +225,7 @@ END$$
 DELIMITER ;
 
 -- ============================================================
--- SOURCE: sql/sp_campania_base.sql
+-- SOURCE: sql\sp_campania_base.sql
 -- ============================================================
 
 ALTER TABLE campania
@@ -378,7 +378,7 @@ END$$
 DELIMITER ;
 
 -- ============================================================
--- SOURCE: sql/sp_comunidad_base.sql
+-- SOURCE: sql\sp_comunidad_base.sql
 -- ============================================================
 
 ALTER TABLE comunidad_vulnerable
@@ -515,7 +515,7 @@ END$$
 DELIMITER ;
 
 -- ============================================================
--- SOURCE: sql/sp_voluntario_base.sql
+-- SOURCE: sql\sp_voluntario_base.sql
 -- ============================================================
 
 ALTER TABLE voluntario
@@ -660,7 +660,7 @@ END$$
 DELIMITER ;
 
 -- ============================================================
--- SOURCE: sql/sp_donacion_base.sql
+-- SOURCE: sql\sp_donacion_base.sql
 -- ============================================================
 
 ALTER TABLE donacion
@@ -842,7 +842,7 @@ END$$
 DELIMITER ;
 
 -- ============================================================
--- SOURCE: sql/sp_entregas_finanzas.sql
+-- SOURCE: sql\sp_entregas_finanzas.sql
 -- ============================================================
 
 -- ============================================================
@@ -1070,7 +1070,7 @@ END$$
 DELIMITER ;
 
 -- ============================================================
--- SOURCE: sql/seed_datos_humanizados.sql
+-- SOURCE: sql\seed_datos_humanizados.sql
 -- ============================================================
 
 USE sistema_donaciones;
