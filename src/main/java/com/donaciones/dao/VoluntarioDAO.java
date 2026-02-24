@@ -11,6 +11,7 @@ import javax.persistence.EntityTransaction;
 import javax.persistence.ParameterMode;
 import javax.persistence.Query;
 import javax.persistence.StoredProcedureQuery;
+import org.hibernate.procedure.ProcedureCall;
 
 public class VoluntarioDAO {
 
@@ -25,6 +26,7 @@ public class VoluntarioDAO {
             StoredProcedureQuery spContar = em.createStoredProcedureQuery("sp_voluntario_contar");
             spContar.registerStoredProcedureParameter("p_q", String.class, ParameterMode.IN);
             spContar.registerStoredProcedureParameter("p_estado", Integer.class, ParameterMode.IN);
+            enableNullParam(spContar, "p_estado");
             spContar.setParameter("p_q", safe(q));
             spContar.setParameter("p_estado", estado);
             spContar.execute();
@@ -35,6 +37,7 @@ public class VoluntarioDAO {
             spListar.registerStoredProcedureParameter("p_estado", Integer.class, ParameterMode.IN);
             spListar.registerStoredProcedureParameter("p_offset", Integer.class, ParameterMode.IN);
             spListar.registerStoredProcedureParameter("p_limit", Integer.class, ParameterMode.IN);
+            enableNullParam(spListar, "p_estado");
             spListar.setParameter("p_q", safe(q));
             spListar.setParameter("p_estado", estado);
             spListar.setParameter("p_offset", offset);
@@ -253,11 +256,17 @@ public class VoluntarioDAO {
 
     private int extractGeneratedId(StoredProcedureQuery sp) {
         @SuppressWarnings("unchecked")
-        List<Object[]> result = sp.getResultList();
-        if (result == null || result.isEmpty() || result.get(0).length == 0) {
+        List<Object> result = sp.getResultList();
+        if (result == null || result.isEmpty()) {
             return 0;
         }
-        return toInt(result.get(0)[0]);
+
+        Object first = result.get(0);
+        if (first instanceof Object[]) {
+            Object[] row = (Object[]) first;
+            return row.length == 0 ? 0 : toInt(row[0]);
+        }
+        return toInt(first);
     }
 
     private int toInt(Object value) {
@@ -276,5 +285,15 @@ public class VoluntarioDAO {
 
     private String safe(Object value) {
         return value == null ? "" : String.valueOf(value);
+    }
+
+    private void enableNullParam(StoredProcedureQuery sp, String paramName) {
+        try {
+            sp.unwrap(ProcedureCall.class)
+                    .getParameterRegistration(paramName)
+                    .enablePassingNulls(true);
+        } catch (RuntimeException ignored) {
+            // Fallback: if provider does not support this, keep default behavior.
+        }
     }
 }

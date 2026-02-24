@@ -23,18 +23,15 @@ BEGIN
     SELECT
         d.id_donante,
         d.nombre,
-        COALESCE(d.email, '') AS email,
-        COALESCE(d.telefono, '') AS telefono,
-        COALESCE(d.direccion, '') AS direccion,
-        COALESCE(d.tipo_donante, 'Institucion') AS tipo_donante,
+        d.email,
+        d.telefono,
+        d.direccion,
+        d.tipo_donante,
         d.id_pais,
         d.fecha_registro,
-        d.activo,
-        p.nombre AS pais,
-        COUNT(DISTINCT dn.id_donacion) AS total_donaciones
+        d.activo
     FROM donante d
     INNER JOIN pais p ON p.id_pais = d.id_pais
-    LEFT JOIN donacion dn ON dn.id_donante = d.id_donante
     WHERE
         UPPER(d.tipo_donante) NOT LIKE 'PERSONA%'
         AND (
@@ -44,9 +41,6 @@ BEGIN
             UPPER(COALESCE(d.direccion, '')) LIKE CONCAT('%', UPPER(p_q), '%')
         )
         AND (p_activo IS NULL OR d.activo = p_activo)
-    GROUP BY
-        d.id_donante, d.nombre, d.email, d.telefono, d.direccion,
-        d.tipo_donante, d.id_pais, p.nombre, d.activo
     ORDER BY d.nombre ASC
     LIMIT p_offset, p_limit;
 END$$
@@ -77,24 +71,16 @@ BEGIN
     SELECT
         d.id_donante,
         d.nombre,
-        COALESCE(d.email, '') AS email,
-        COALESCE(d.telefono, '') AS telefono,
-        COALESCE(d.direccion, '') AS direccion,
-        COALESCE(d.tipo_donante, 'Institucion') AS tipo_donante,
+        d.email,
+        d.telefono,
+        d.direccion,
+        d.tipo_donante,
         d.id_pais,
         d.fecha_registro,
-        d.activo,
-        p.nombre AS pais,
-        DATE_FORMAT(d.fecha_registro, '%Y-%m-%d') AS fecha_registro_fmt,
-        COUNT(DISTINCT dn.id_donacion) AS total_donaciones
+        d.activo
     FROM donante d
-    INNER JOIN pais p ON p.id_pais = d.id_pais
-    LEFT JOIN donacion dn ON dn.id_donante = d.id_donante
     WHERE d.id_donante = p_id_donante
       AND UPPER(d.tipo_donante) NOT LIKE 'PERSONA%'
-    GROUP BY
-        d.id_donante, d.nombre, d.email, d.telefono, d.direccion,
-        d.tipo_donante, d.id_pais, d.fecha_registro, d.activo, p.nombre
     LIMIT 1;
 END$$
 

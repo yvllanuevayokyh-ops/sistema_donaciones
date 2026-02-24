@@ -1,5 +1,5 @@
 ﻿-- Backup funcional consolidado
--- Generado: 2026-02-23 20:18:16
+-- Generado: 2026-02-23 20:39:36
 -- Base: sistema_donaciones
 USE sistema_donaciones;
 
@@ -86,18 +86,15 @@ BEGIN
     SELECT
         d.id_donante,
         d.nombre,
-        COALESCE(d.email, '') AS email,
-        COALESCE(d.telefono, '') AS telefono,
-        COALESCE(d.direccion, '') AS direccion,
-        COALESCE(d.tipo_donante, 'Institucion') AS tipo_donante,
+        d.email,
+        d.telefono,
+        d.direccion,
+        d.tipo_donante,
         d.id_pais,
         d.fecha_registro,
-        d.activo,
-        p.nombre AS pais,
-        COUNT(DISTINCT dn.id_donacion) AS total_donaciones
+        d.activo
     FROM donante d
     INNER JOIN pais p ON p.id_pais = d.id_pais
-    LEFT JOIN donacion dn ON dn.id_donante = d.id_donante
     WHERE
         UPPER(d.tipo_donante) NOT LIKE 'PERSONA%'
         AND (
@@ -107,9 +104,6 @@ BEGIN
             UPPER(COALESCE(d.direccion, '')) LIKE CONCAT('%', UPPER(p_q), '%')
         )
         AND (p_activo IS NULL OR d.activo = p_activo)
-    GROUP BY
-        d.id_donante, d.nombre, d.email, d.telefono, d.direccion,
-        d.tipo_donante, d.id_pais, p.nombre, d.activo
     ORDER BY d.nombre ASC
     LIMIT p_offset, p_limit;
 END$$
@@ -140,24 +134,16 @@ BEGIN
     SELECT
         d.id_donante,
         d.nombre,
-        COALESCE(d.email, '') AS email,
-        COALESCE(d.telefono, '') AS telefono,
-        COALESCE(d.direccion, '') AS direccion,
-        COALESCE(d.tipo_donante, 'Institucion') AS tipo_donante,
+        d.email,
+        d.telefono,
+        d.direccion,
+        d.tipo_donante,
         d.id_pais,
         d.fecha_registro,
-        d.activo,
-        p.nombre AS pais,
-        DATE_FORMAT(d.fecha_registro, '%Y-%m-%d') AS fecha_registro_fmt,
-        COUNT(DISTINCT dn.id_donacion) AS total_donaciones
+        d.activo
     FROM donante d
-    INNER JOIN pais p ON p.id_pais = d.id_pais
-    LEFT JOIN donacion dn ON dn.id_donante = d.id_donante
     WHERE d.id_donante = p_id_donante
       AND UPPER(d.tipo_donante) NOT LIKE 'PERSONA%'
-    GROUP BY
-        d.id_donante, d.nombre, d.email, d.telefono, d.direccion,
-        d.tipo_donante, d.id_pais, d.fecha_registro, d.activo, p.nombre
     LIMIT 1;
 END$$
 
@@ -543,17 +529,11 @@ BEGIN
     SELECT
         v.id_voluntario,
         v.nombre,
-        COALESCE(v.email, '') AS email,
-        COALESCE(v.telefono, '') AS telefono,
+        v.email,
+        v.telefono,
         v.fecha_ingreso,
-        v.estado,
-        DATE_FORMAT(v.fecha_ingreso, '%Y-%m-%d') AS fecha_ingreso_fmt,
-        COUNT(DISTINCT ave.id_entrega) AS total_entregas,
-        SUM(CASE WHEN UPPER(COALESCE(ee.descripcion, '')) = 'ENTREGADO' THEN 1 ELSE 0 END) AS entregas_completadas
+        v.estado
     FROM voluntario v
-    LEFT JOIN asignacion_voluntario_entrega ave ON ave.id_voluntario = v.id_voluntario
-    LEFT JOIN entrega_donacion ed ON ed.id_entrega = ave.id_entrega
-    LEFT JOIN estado_entrega ee ON ee.id_estado_entrega = ed.id_estado_entrega
     WHERE
         (
             p_q IS NULL OR p_q = '' OR
@@ -562,8 +542,6 @@ BEGIN
             UPPER(COALESCE(v.telefono, '')) LIKE CONCAT('%', UPPER(p_q), '%')
         )
         AND (p_estado IS NULL OR v.estado = p_estado)
-    GROUP BY
-        v.id_voluntario, v.nombre, v.email, v.telefono, v.fecha_ingreso, v.estado
     ORDER BY v.nombre ASC
     LIMIT p_offset, p_limit;
 END$$
@@ -592,20 +570,12 @@ BEGIN
     SELECT
         v.id_voluntario,
         v.nombre,
-        COALESCE(v.email, '') AS email,
-        COALESCE(v.telefono, '') AS telefono,
+        v.email,
+        v.telefono,
         v.fecha_ingreso,
-        v.estado,
-        DATE_FORMAT(v.fecha_ingreso, '%Y-%m-%d') AS fecha_ingreso_fmt,
-        COUNT(DISTINCT ave.id_entrega) AS total_entregas,
-        SUM(CASE WHEN UPPER(COALESCE(ee.descripcion, '')) = 'ENTREGADO' THEN 1 ELSE 0 END) AS entregas_completadas
+        v.estado
     FROM voluntario v
-    LEFT JOIN asignacion_voluntario_entrega ave ON ave.id_voluntario = v.id_voluntario
-    LEFT JOIN entrega_donacion ed ON ed.id_entrega = ave.id_entrega
-    LEFT JOIN estado_entrega ee ON ee.id_estado_entrega = ed.id_estado_entrega
     WHERE v.id_voluntario = p_id_voluntario
-    GROUP BY
-        v.id_voluntario, v.nombre, v.email, v.telefono, v.fecha_ingreso, v.estado
     LIMIT 1;
 END$$
 

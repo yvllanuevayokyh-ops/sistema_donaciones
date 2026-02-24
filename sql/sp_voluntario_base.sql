@@ -23,17 +23,11 @@ BEGIN
     SELECT
         v.id_voluntario,
         v.nombre,
-        COALESCE(v.email, '') AS email,
-        COALESCE(v.telefono, '') AS telefono,
+        v.email,
+        v.telefono,
         v.fecha_ingreso,
-        v.estado,
-        DATE_FORMAT(v.fecha_ingreso, '%Y-%m-%d') AS fecha_ingreso_fmt,
-        COUNT(DISTINCT ave.id_entrega) AS total_entregas,
-        SUM(CASE WHEN UPPER(COALESCE(ee.descripcion, '')) = 'ENTREGADO' THEN 1 ELSE 0 END) AS entregas_completadas
+        v.estado
     FROM voluntario v
-    LEFT JOIN asignacion_voluntario_entrega ave ON ave.id_voluntario = v.id_voluntario
-    LEFT JOIN entrega_donacion ed ON ed.id_entrega = ave.id_entrega
-    LEFT JOIN estado_entrega ee ON ee.id_estado_entrega = ed.id_estado_entrega
     WHERE
         (
             p_q IS NULL OR p_q = '' OR
@@ -42,8 +36,6 @@ BEGIN
             UPPER(COALESCE(v.telefono, '')) LIKE CONCAT('%', UPPER(p_q), '%')
         )
         AND (p_estado IS NULL OR v.estado = p_estado)
-    GROUP BY
-        v.id_voluntario, v.nombre, v.email, v.telefono, v.fecha_ingreso, v.estado
     ORDER BY v.nombre ASC
     LIMIT p_offset, p_limit;
 END$$
@@ -72,20 +64,12 @@ BEGIN
     SELECT
         v.id_voluntario,
         v.nombre,
-        COALESCE(v.email, '') AS email,
-        COALESCE(v.telefono, '') AS telefono,
+        v.email,
+        v.telefono,
         v.fecha_ingreso,
-        v.estado,
-        DATE_FORMAT(v.fecha_ingreso, '%Y-%m-%d') AS fecha_ingreso_fmt,
-        COUNT(DISTINCT ave.id_entrega) AS total_entregas,
-        SUM(CASE WHEN UPPER(COALESCE(ee.descripcion, '')) = 'ENTREGADO' THEN 1 ELSE 0 END) AS entregas_completadas
+        v.estado
     FROM voluntario v
-    LEFT JOIN asignacion_voluntario_entrega ave ON ave.id_voluntario = v.id_voluntario
-    LEFT JOIN entrega_donacion ed ON ed.id_entrega = ave.id_entrega
-    LEFT JOIN estado_entrega ee ON ee.id_estado_entrega = ed.id_estado_entrega
     WHERE v.id_voluntario = p_id_voluntario
-    GROUP BY
-        v.id_voluntario, v.nombre, v.email, v.telefono, v.fecha_ingreso, v.estado
     LIMIT 1;
 END$$
 
