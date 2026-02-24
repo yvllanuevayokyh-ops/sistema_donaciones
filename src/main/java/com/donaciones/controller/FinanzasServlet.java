@@ -34,6 +34,8 @@ public class FinanzasServlet {
         BigDecimal saldoDisponible = BigDecimal.ZERO;
         int totalDonaciones = 0;
         int totalEntregas = 0;
+        String ultimaDonacion = "-";
+        String ultimaEntrega = "-";
         List<Object[]> porCampania = new ArrayList<Object[]>();
         List<Object[]> porComunidad = new ArrayList<Object[]>();
 
@@ -45,6 +47,10 @@ public class FinanzasServlet {
                 totalDonaciones = toInt(resumen[2]);
                 totalEntregas = toInt(resumen[3]);
                 saldoDisponible = totalRecaudado.subtract(totalEntregado);
+                if (resumen.length >= 6) {
+                    ultimaDonacion = formatDateTime(resumen[4]);
+                    ultimaEntrega = formatDateTime(resumen[5]);
+                }
             }
 
             porCampania = safeList(finanzasDAO.resumenPorCampania());
@@ -59,6 +65,8 @@ public class FinanzasServlet {
         request.setAttribute("saldoDisponible", saldoDisponible);
         request.setAttribute("totalDonaciones", totalDonaciones);
         request.setAttribute("totalEntregas", totalEntregas);
+        request.setAttribute("ultimaDonacion", ultimaDonacion);
+        request.setAttribute("ultimaEntrega", ultimaEntrega);
         request.setAttribute("porCampania", porCampania);
         request.setAttribute("porComunidad", porComunidad);
         request.setAttribute("ordenCampania", "Mayor recaudado");
@@ -122,5 +130,17 @@ public class FinanzasServlet {
 
     private <T> List<T> safeList(List<T> rows) {
         return rows == null ? new ArrayList<T>() : rows;
+    }
+
+    private String formatDateTime(Object value) {
+        if (value == null) {
+            return "-";
+        }
+        try {
+            java.util.Date date = (java.util.Date) value;
+            return new java.text.SimpleDateFormat("dd/MM/yyyy HH:mm:ss").format(date);
+        } catch (Exception ex) {
+            return String.valueOf(value);
+        }
     }
 }

@@ -1,5 +1,5 @@
 ﻿-- Backup funcional consolidado
--- Generado: 2026-02-23 20:39:36
+-- Generado: 2026-02-23 20:44:55
 -- Base: sistema_donaciones
 USE sistema_donaciones;
 
@@ -833,14 +833,20 @@ CREATE TABLE IF NOT EXISTS entrega_donacion (
     id_entrega INT AUTO_INCREMENT PRIMARY KEY,
     id_donacion INT NOT NULL,
     id_comunidad INT NOT NULL,
-    fecha_programada DATE,
-    fecha_entrega DATE,
+    fecha_programada DATETIME,
+    fecha_entrega DATETIME,
     id_estado_entrega INT NOT NULL DEFAULT 1,
     observaciones TEXT,
     FOREIGN KEY (id_donacion) REFERENCES donacion(id_donacion),
     FOREIGN KEY (id_comunidad) REFERENCES comunidad_vulnerable(id_comunidad),
     FOREIGN KEY (id_estado_entrega) REFERENCES estado_entrega(id_estado_entrega)
 );
+
+ALTER TABLE entrega_donacion
+    MODIFY COLUMN fecha_programada DATETIME NULL;
+
+ALTER TABLE entrega_donacion
+    MODIFY COLUMN fecha_entrega DATETIME NULL;
 
 -- ============================================================
 -- STORED PROCEDURES - ENTREGAS
@@ -924,8 +930,8 @@ CREATE PROCEDURE sp_entrega_crear(
     IN p_id_donacion INT,
     IN p_id_comunidad INT,
     IN p_id_estado_entrega INT,
-    IN p_fecha_programada DATE,
-    IN p_fecha_entrega DATE,
+    IN p_fecha_programada DATETIME,
+    IN p_fecha_entrega DATETIME,
     IN p_observaciones TEXT
 )
 BEGIN
@@ -944,8 +950,8 @@ CREATE PROCEDURE sp_entrega_editar(
     IN p_id_donacion INT,
     IN p_id_comunidad INT,
     IN p_id_estado_entrega INT,
-    IN p_fecha_programada DATE,
-    IN p_fecha_entrega DATE,
+    IN p_fecha_programada DATETIME,
+    IN p_fecha_entrega DATETIME,
     IN p_observaciones TEXT
 )
 BEGIN
@@ -962,7 +968,7 @@ END$$
 CREATE PROCEDURE sp_entrega_cambiar_estado(
     IN p_id_entrega INT,
     IN p_id_estado_entrega INT,
-    IN p_fecha_entrega DATE,
+    IN p_fecha_entrega DATETIME,
     IN p_observaciones TEXT
 )
 BEGIN
@@ -996,7 +1002,9 @@ BEGIN
               )
         ), 0) AS total_entregado,
         COUNT(DISTINCT CASE WHEN d.activo = 1 THEN d.id_donacion END) AS total_donaciones,
-        COUNT(DISTINCT e.id_entrega) AS total_entregas
+        COUNT(DISTINCT e.id_entrega) AS total_entregas,
+        MAX(d.fecha_donacion) AS ultima_donacion,
+        MAX(e.fecha_entrega) AS ultima_entrega
     FROM donacion d
     LEFT JOIN entrega_donacion e ON e.id_donacion = d.id_donacion;
 END$$
@@ -1009,9 +1017,12 @@ BEGIN
         COALESCE(c.monto_objetivo, 0) AS meta,
         COALESCE(SUM(COALESCE(d.monto, 0)), 0) AS recaudado,
         COALESCE(c.monto_objetivo, 0) - COALESCE(SUM(COALESCE(d.monto, 0)), 0) AS saldo,
-        COUNT(DISTINCT d.id_donacion) AS donaciones
+        COUNT(DISTINCT d.id_donacion) AS donaciones,
+        MAX(d.fecha_donacion) AS ultima_donacion,
+        MAX(e.fecha_entrega) AS ultima_entrega
     FROM campania c
     LEFT JOIN donacion d ON d.id_campania = c.id_campania AND d.activo = 1
+    LEFT JOIN entrega_donacion e ON e.id_donacion = d.id_donacion
     WHERE c.activo = 1
     GROUP BY c.id_campania, c.nombre, c.monto_objetivo
     ORDER BY recaudado DESC;
@@ -1027,7 +1038,9 @@ BEGIN
         COUNT(DISTINCT CASE WHEN UPPER(ee.descripcion) = 'ENTREGADO' THEN e.id_entrega END) AS entregas_completadas,
         COALESCE(SUM(
             CASE WHEN UPPER(ee.descripcion) = 'ENTREGADO' THEN COALESCE(d.monto, 0) ELSE 0 END
-        ), 0) AS monto_recibido
+        ), 0) AS monto_recibido,
+        MAX(e.fecha_programada) AS ultima_programada,
+        MAX(e.fecha_entrega) AS ultima_entrega
     FROM comunidad_vulnerable cv
     LEFT JOIN entrega_donacion e ON e.id_comunidad = cv.id_comunidad
     LEFT JOIN estado_entrega ee ON ee.id_estado_entrega = e.id_estado_entrega
@@ -1343,7 +1356,7 @@ WHERE NOT EXISTS (SELECT 1 FROM estado_entrega WHERE id_estado_entrega = 4);
 INSERT INTO entrega_donacion (id_donacion, id_comunidad, fecha_programada, fecha_entrega, id_estado_entrega, observaciones)
 SELECT d.id_donacion,
        (SELECT id_comunidad FROM comunidad_vulnerable WHERE UPPER(nombre) = 'COMUNIDAD LOS ANDES' LIMIT 1),
-       '2026-02-12', '2026-02-14', 3,
+       '2026-02-12 09:30:00', '2026-02-14 16:15:00', 3,
        'Entrega completada con acta firmada por comite comunal'
 FROM donacion d
 WHERE d.descripcion = 'Transferencia para adquisicion de tanques de agua comunitarios'
@@ -1352,7 +1365,7 @@ WHERE d.descripcion = 'Transferencia para adquisicion de tanques de agua comunit
 INSERT INTO entrega_donacion (id_donacion, id_comunidad, fecha_programada, fecha_entrega, id_estado_entrega, observaciones)
 SELECT d.id_donacion,
        (SELECT id_comunidad FROM comunidad_vulnerable WHERE UPPER(nombre) = 'VILLA ESPERANZA' LIMIT 1),
-       '2026-02-15', NULL, 2,
+       '2026-02-15 10:00:00', NULL, 2,
        'Carga consolidada y en ruta, pendiente arribo final'
 FROM donacion d
 WHERE d.descripcion = 'Fondo para compra de medicamentos de atencion primaria'
@@ -1361,7 +1374,7 @@ WHERE d.descripcion = 'Fondo para compra de medicamentos de atencion primaria'
 INSERT INTO entrega_donacion (id_donacion, id_comunidad, fecha_programada, fecha_entrega, id_estado_entrega, observaciones)
 SELECT d.id_donacion,
        (SELECT id_comunidad FROM comunidad_vulnerable WHERE UPPER(nombre) = 'NUEVA SEMILLA' LIMIT 1),
-       '2026-02-18', NULL, 1,
+       '2026-02-18 08:45:00', NULL, 1,
        'Programada para jornada educativa de fin de mes'
 FROM donacion d
 WHERE d.descripcion = 'Aporte para compra de carpetas y pizarras para dos aulas rurales'
@@ -1370,7 +1383,7 @@ WHERE d.descripcion = 'Aporte para compra de carpetas y pizarras para dos aulas 
 INSERT INTO entrega_donacion (id_donacion, id_comunidad, fecha_programada, fecha_entrega, id_estado_entrega, observaciones)
 SELECT d.id_donacion,
        (SELECT id_comunidad FROM comunidad_vulnerable WHERE UPPER(nombre) = 'BARRIO SAN MIGUEL' LIMIT 1),
-       '2026-02-20', '2026-02-21', 3,
+       '2026-02-20 11:00:00', '2026-02-21 14:40:00', 3,
        'Distribucion realizada en centro comunal con apoyo de voluntarios'
 FROM donacion d
 WHERE d.descripcion = 'Cobertura de compras para suplemento nutricional trimestral'

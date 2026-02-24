@@ -39,8 +39,8 @@
         </div>
 
         <section class="stats finance-stats">
-            <article class="stat"><h3>Total Recaudado</h3><strong th:text="${'S/ ' + totalRecaudado}">S/0</strong><small>Donaciones monetarias activas</small></article>
-            <article class="stat"><h3>Total Entregado</h3><strong th:text="${'S/ ' + totalEntregado}">S/0</strong><small>Monto asociado a entregas completadas</small></article>
+            <article class="stat"><h3>Total Recaudado</h3><strong th:text="${'S/ ' + totalRecaudado}">S/0</strong><small th:text="${'Ultima donacion: ' + ultimaDonacion}">Ultima donacion: -</small></article>
+            <article class="stat"><h3>Total Entregado</h3><strong th:text="${'S/ ' + totalEntregado}">S/0</strong><small th:text="${'Ultima entrega: ' + ultimaEntrega}">Ultima entrega: -</small></article>
             <article class="stat"><h3>Saldo Disponible</h3><strong th:text="${'S/ ' + saldoDisponible}">S/0</strong><small><span th:text="${totalDonaciones}"></span> donaciones - <span th:text="${totalEntregas}"></span> entregas</small></article>
         </section>
 
@@ -57,10 +57,12 @@
                             <th>Recaudado</th>
                             <th>Saldo</th>
                             <th>Donaciones</th>
+                            <th>Ult. donacion</th>
+                            <th>Ult. entrega</th>
                         </tr>
                         </thead>
                         <tbody>
-                        <tr th:if="${porCampania == null or #lists.isEmpty(porCampania)}"><td colspan="6" class="muted">No hay datos de campanias.</td></tr>
+                        <tr th:if="${porCampania == null or #lists.isEmpty(porCampania)}"><td colspan="8" class="muted">No hay datos de campanias.</td></tr>
                         <tr th:each="row, st : ${porCampania}">
                             <td th:text="${st.count}"></td>
                             <td th:text="${row[1]}"></td>
@@ -68,6 +70,8 @@
                             <td th:text="${'S/ ' + row[3]}"></td>
                             <td th:text="${'S/ ' + row[4]}"></td>
                             <td th:text="${row[5]}"></td>
+                            <td th:text="${row[6] != null ? #dates.format(row[6], 'dd/MM/yyyy HH:mm') : '-'}"></td>
+                            <td th:text="${row[7] != null ? #dates.format(row[7], 'dd/MM/yyyy HH:mm') : '-'}"></td>
                         </tr>
                         </tbody>
                     </table>
@@ -86,10 +90,12 @@
                             <th>Entregas</th>
                             <th>Completadas</th>
                             <th>Monto recibido</th>
+                            <th>Ult. programada</th>
+                            <th>Ult. entrega</th>
                         </tr>
                         </thead>
                         <tbody>
-                        <tr th:if="${porComunidad == null or #lists.isEmpty(porComunidad)}"><td colspan="6" class="muted">No hay datos de comunidades.</td></tr>
+                        <tr th:if="${porComunidad == null or #lists.isEmpty(porComunidad)}"><td colspan="8" class="muted">No hay datos de comunidades.</td></tr>
                         <tr th:each="row, st : ${porComunidad}">
                             <td th:text="${st.count}"></td>
                             <td th:text="${row[1]}"></td>
@@ -97,6 +103,8 @@
                             <td th:text="${row[3]}"></td>
                             <td th:text="${row[4]}"></td>
                             <td th:text="${'S/ ' + row[5]}"></td>
+                            <td th:text="${row[6] != null ? #dates.format(row[6], 'dd/MM/yyyy HH:mm') : '-'}"></td>
+                            <td th:text="${row[7] != null ? #dates.format(row[7], 'dd/MM/yyyy HH:mm') : '-'}"></td>
                         </tr>
                         </tbody>
                     </table>

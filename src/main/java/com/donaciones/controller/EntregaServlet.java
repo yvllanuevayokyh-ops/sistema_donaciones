@@ -9,8 +9,10 @@ import com.donaciones.model.Donacion;
 import com.donaciones.model.EntregaDonacion;
 import com.donaciones.model.EstadoEntrega;
 import java.io.IOException;
-import java.sql.Date;
+import java.sql.Timestamp;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import javax.servlet.http.HttpServletRequest;
@@ -107,6 +109,7 @@ public class EntregaServlet {
         request.setAttribute("q", q);
         request.setAttribute("estado", estado);
         request.setAttribute("hoy", LocalDate.now().toString());
+        request.setAttribute("ahora", LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd'T'HH:mm")));
         request.setAttribute("currentPage", currentPage);
         request.setAttribute("totalPages", totalPages);
         request.setAttribute("totalRows", totalRows);
@@ -153,8 +156,8 @@ public class EntregaServlet {
         Integer idDonacion = parseInteger(request.getParameter("id_donacion"));
         Integer idComunidad = parseInteger(request.getParameter("id_comunidad"));
         Integer idEstado = parseInteger(request.getParameter("id_estado_entrega"));
-        Date fechaProgramada = parseDate(request.getParameter("fecha_programada"));
-        Date fechaEntrega = parseDate(request.getParameter("fecha_entrega"));
+        Timestamp fechaProgramada = parseTimestamp(request.getParameter("fecha_programada"));
+        Timestamp fechaEntrega = parseTimestamp(request.getParameter("fecha_entrega"));
         String observaciones = safe(request.getParameter("observaciones"));
 
         if (idDonacion == null || idComunidad == null) {
@@ -166,7 +169,7 @@ public class EntregaServlet {
             idEstado = 1;
         }
         if (idEstado == 3 && fechaEntrega == null) {
-            fechaEntrega = Date.valueOf(LocalDate.now());
+            fechaEntrega = nowTimestamp();
         }
 
         int newId = entregaDAO.crear(idDonacion, idComunidad, idEstado, fechaProgramada, fechaEntrega, observaciones);
@@ -183,8 +186,8 @@ public class EntregaServlet {
         Integer idDonacion = parseInteger(request.getParameter("id_donacion"));
         Integer idComunidad = parseInteger(request.getParameter("id_comunidad"));
         Integer idEstado = parseInteger(request.getParameter("id_estado_entrega"));
-        Date fechaProgramada = parseDate(request.getParameter("fecha_programada"));
-        Date fechaEntrega = parseDate(request.getParameter("fecha_entrega"));
+        Timestamp fechaProgramada = parseTimestamp(request.getParameter("fecha_programada"));
+        Timestamp fechaEntrega = parseTimestamp(request.getParameter("fecha_entrega"));
         String observaciones = safe(request.getParameter("observaciones"));
 
         if (idEntrega == null || idDonacion == null || idComunidad == null || idEstado == null) {
@@ -193,7 +196,7 @@ public class EntregaServlet {
             return;
         }
         if (idEstado == 3 && fechaEntrega == null) {
-            fechaEntrega = Date.valueOf(LocalDate.now());
+            fechaEntrega = nowTimestamp();
         }
 
         entregaDAO.editar(idEntrega, idDonacion, idComunidad, idEstado, fechaProgramada, fechaEntrega, observaciones);
@@ -204,7 +207,7 @@ public class EntregaServlet {
     private void cambiarEstado(HttpServletRequest request, HttpServletResponse response) throws Exception {
         Integer idEntrega = parseInteger(request.getParameter("id"));
         Integer idEstado = parseInteger(request.getParameter("id_estado_entrega"));
-        Date fechaEntrega = parseDate(request.getParameter("fecha_entrega"));
+        Timestamp fechaEntrega = parseTimestamp(request.getParameter("fecha_entrega"));
         String observaciones = safe(request.getParameter("observaciones"));
 
         if (idEntrega == null || idEstado == null) {
@@ -213,7 +216,7 @@ public class EntregaServlet {
             return;
         }
         if (idEstado == 3 && fechaEntrega == null) {
-            fechaEntrega = Date.valueOf(LocalDate.now());
+            fechaEntrega = nowTimestamp();
         }
 
         entregaDAO.cambiarEstado(idEntrega, idEstado, fechaEntrega, observaciones);
@@ -263,15 +266,24 @@ public class EntregaServlet {
         }
     }
 
-    private Date parseDate(String value) {
+    private Timestamp parseTimestamp(String value) {
         try {
             if (value == null || value.isBlank()) {
                 return null;
             }
-            return Date.valueOf(LocalDate.parse(value));
+            String normalized = value.trim().replace('T', ' ');
+            if (normalized.length() == 16) {
+                normalized = normalized + ":00";
+            }
+            return Timestamp.valueOf(normalized);
         } catch (Exception ex) {
             return null;
         }
+    }
+
+    private Timestamp nowTimestamp() {
+        LocalDateTime now = LocalDateTime.now().withSecond(0).withNano(0);
+        return Timestamp.valueOf(now);
     }
 
     private <T> List<T> safeList(List<T> rows) {

@@ -3,7 +3,7 @@ package com.donaciones.dao;
 import com.donaciones.model.EntregaDonacion;
 import com.donaciones.model.EstadoEntrega;
 import com.donaciones.util.JPAUtil;
-import java.sql.Date;
+import java.sql.Timestamp;
 import java.util.List;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
@@ -77,7 +77,7 @@ public class EntregaDAO {
     }
 
     public int crear(Integer idDonacion, Integer idComunidad, Integer idEstadoEntrega,
-                     Date fechaProgramada, Date fechaEntrega, String observaciones) {
+                     Timestamp fechaProgramada, Timestamp fechaEntrega, String observaciones) {
         EntityManager em = JPAUtil.getInstance().getEntityManager();
         EntityTransaction tx = em.getTransaction();
         try {
@@ -86,8 +86,8 @@ public class EntregaDAO {
             sp.registerStoredProcedureParameter("p_id_donacion", Integer.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_id_comunidad", Integer.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_id_estado_entrega", Integer.class, ParameterMode.IN);
-            sp.registerStoredProcedureParameter("p_fecha_programada", Date.class, ParameterMode.IN);
-            sp.registerStoredProcedureParameter("p_fecha_entrega", Date.class, ParameterMode.IN);
+            sp.registerStoredProcedureParameter("p_fecha_programada", Timestamp.class, ParameterMode.IN);
+            sp.registerStoredProcedureParameter("p_fecha_entrega", Timestamp.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_observaciones", String.class, ParameterMode.IN);
             sp.setParameter("p_id_donacion", idDonacion);
             sp.setParameter("p_id_comunidad", idComunidad);
@@ -110,7 +110,7 @@ public class EntregaDAO {
     }
 
     public void editar(Integer idEntrega, Integer idDonacion, Integer idComunidad, Integer idEstadoEntrega,
-                       Date fechaProgramada, Date fechaEntrega, String observaciones) {
+                       Timestamp fechaProgramada, Timestamp fechaEntrega, String observaciones) {
         EntityManager em = JPAUtil.getInstance().getEntityManager();
         EntityTransaction tx = em.getTransaction();
         try {
@@ -120,8 +120,8 @@ public class EntregaDAO {
             sp.registerStoredProcedureParameter("p_id_donacion", Integer.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_id_comunidad", Integer.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_id_estado_entrega", Integer.class, ParameterMode.IN);
-            sp.registerStoredProcedureParameter("p_fecha_programada", Date.class, ParameterMode.IN);
-            sp.registerStoredProcedureParameter("p_fecha_entrega", Date.class, ParameterMode.IN);
+            sp.registerStoredProcedureParameter("p_fecha_programada", Timestamp.class, ParameterMode.IN);
+            sp.registerStoredProcedureParameter("p_fecha_entrega", Timestamp.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_observaciones", String.class, ParameterMode.IN);
             sp.setParameter("p_id_entrega", idEntrega);
             sp.setParameter("p_id_donacion", idDonacion);
@@ -143,7 +143,7 @@ public class EntregaDAO {
     }
 
     public void cambiarEstado(Integer idEntrega, Integer idEstadoEntrega,
-                              Date fechaEntrega, String observaciones) {
+                              Timestamp fechaEntrega, String observaciones) {
         EntityManager em = JPAUtil.getInstance().getEntityManager();
         EntityTransaction tx = em.getTransaction();
         try {
@@ -151,7 +151,7 @@ public class EntregaDAO {
             StoredProcedureQuery sp = em.createStoredProcedureQuery("sp_entrega_cambiar_estado");
             sp.registerStoredProcedureParameter("p_id_entrega", Integer.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_id_estado_entrega", Integer.class, ParameterMode.IN);
-            sp.registerStoredProcedureParameter("p_fecha_entrega", Date.class, ParameterMode.IN);
+            sp.registerStoredProcedureParameter("p_fecha_entrega", Timestamp.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_observaciones", String.class, ParameterMode.IN);
             sp.setParameter("p_id_entrega", idEntrega);
             sp.setParameter("p_id_estado_entrega", idEstadoEntrega);

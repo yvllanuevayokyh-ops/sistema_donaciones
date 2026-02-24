@@ -1,6 +1,6 @@
 package com.donaciones.model;
 
-import java.sql.Date;
+import java.sql.Timestamp;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -29,10 +29,10 @@ public class EntregaDonacion {
     private ComunidadVulnerable comunidad;
 
     @Column(name = "fecha_programada")
-    private Date fechaProgramada;
+    private Timestamp fechaProgramada;
 
     @Column(name = "fecha_entrega")
-    private Date fechaEntrega;
+    private Timestamp fechaEntrega;
 
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "id_estado_entrega", nullable = false)
@@ -65,19 +65,19 @@ public class EntregaDonacion {
         this.comunidad = comunidad;
     }
 
-    public Date getFechaProgramada() {
+    public Timestamp getFechaProgramada() {
         return fechaProgramada;
     }
 
-    public void setFechaProgramada(Date fechaProgramada) {
+    public void setFechaProgramada(Timestamp fechaProgramada) {
         this.fechaProgramada = fechaProgramada;
     }
 
-    public Date getFechaEntrega() {
+    public Timestamp getFechaEntrega() {
         return fechaEntrega;
     }
 
-    public void setFechaEntrega(Date fechaEntrega) {
+    public void setFechaEntrega(Timestamp fechaEntrega) {
         this.fechaEntrega = fechaEntrega;
     }
 

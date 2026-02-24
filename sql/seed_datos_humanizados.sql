@@ -298,7 +298,7 @@ WHERE NOT EXISTS (SELECT 1 FROM estado_entrega WHERE id_estado_entrega = 4);
 INSERT INTO entrega_donacion (id_donacion, id_comunidad, fecha_programada, fecha_entrega, id_estado_entrega, observaciones)
 SELECT d.id_donacion,
        (SELECT id_comunidad FROM comunidad_vulnerable WHERE UPPER(nombre) = 'COMUNIDAD LOS ANDES' LIMIT 1),
-       '2026-02-12', '2026-02-14', 3,
+       '2026-02-12 09:30:00', '2026-02-14 16:15:00', 3,
        'Entrega completada con acta firmada por comite comunal'
 FROM donacion d
 WHERE d.descripcion = 'Transferencia para adquisicion de tanques de agua comunitarios'
@@ -307,7 +307,7 @@ WHERE d.descripcion = 'Transferencia para adquisicion de tanques de agua comunit
 INSERT INTO entrega_donacion (id_donacion, id_comunidad, fecha_programada, fecha_entrega, id_estado_entrega, observaciones)
 SELECT d.id_donacion,
        (SELECT id_comunidad FROM comunidad_vulnerable WHERE UPPER(nombre) = 'VILLA ESPERANZA' LIMIT 1),
-       '2026-02-15', NULL, 2,
+       '2026-02-15 10:00:00', NULL, 2,
        'Carga consolidada y en ruta, pendiente arribo final'
 FROM donacion d
 WHERE d.descripcion = 'Fondo para compra de medicamentos de atencion primaria'
@@ -316,7 +316,7 @@ WHERE d.descripcion = 'Fondo para compra de medicamentos de atencion primaria'
 INSERT INTO entrega_donacion (id_donacion, id_comunidad, fecha_programada, fecha_entrega, id_estado_entrega, observaciones)
 SELECT d.id_donacion,
        (SELECT id_comunidad FROM comunidad_vulnerable WHERE UPPER(nombre) = 'NUEVA SEMILLA' LIMIT 1),
-       '2026-02-18', NULL, 1,
+       '2026-02-18 08:45:00', NULL, 1,
        'Programada para jornada educativa de fin de mes'
 FROM donacion d
 WHERE d.descripcion = 'Aporte para compra de carpetas y pizarras para dos aulas rurales'
@@ -325,7 +325,7 @@ WHERE d.descripcion = 'Aporte para compra de carpetas y pizarras para dos aulas 
 INSERT INTO entrega_donacion (id_donacion, id_comunidad, fecha_programada, fecha_entrega, id_estado_entrega, observaciones)
 SELECT d.id_donacion,
        (SELECT id_comunidad FROM comunidad_vulnerable WHERE UPPER(nombre) = 'BARRIO SAN MIGUEL' LIMIT 1),
-       '2026-02-20', '2026-02-21', 3,
+       '2026-02-20 11:00:00', '2026-02-21 14:40:00', 3,
        'Distribucion realizada en centro comunal con apoyo de voluntarios'
 FROM donacion d
 WHERE d.descripcion = 'Cobertura de compras para suplemento nutricional trimestral'

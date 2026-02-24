@@ -76,8 +76,16 @@
                                     th:selected="${edicion != null and edicion.estadoEntrega != null and edicion.estadoEntrega.idEstadoEntrega == e.idEstadoEntrega}"></option>
                         </select>
                     </div>
-                    <div><label>Fecha programada</label><input type="date" name="fecha_programada" th:value="${edicion != null and edicion.fechaProgramada != null ? edicion.fechaProgramada : hoy}"></div>
-                    <div><label>Fecha entrega</label><input type="date" name="fecha_entrega" th:value="${edicion != null and edicion.fechaEntrega != null ? edicion.fechaEntrega : ''}"></div>
+                    <div>
+                        <label>Fecha y hora programada</label>
+                        <input type="datetime-local" name="fecha_programada"
+                               th:value="${edicion != null and edicion.fechaProgramada != null ? #dates.format(edicion.fechaProgramada, 'yyyy-MM-dd''T''HH:mm') : ahora}">
+                    </div>
+                    <div>
+                        <label>Fecha y hora entrega</label>
+                        <input type="datetime-local" name="fecha_entrega"
+                               th:value="${edicion != null and edicion.fechaEntrega != null ? #dates.format(edicion.fechaEntrega, 'yyyy-MM-dd''T''HH:mm') : ''}">
+                    </div>
                     <div class="full"><label>Observaciones</label><textarea name="observaciones" rows="3" th:text="${edicion != null ? edicion.observaciones : ''}"></textarea></div>
                     <div class="full form-actions"><button type="submit" th:text="${edicion != null ? 'Guardar Cambios' : 'Guardar Entrega'}"></button><a class="btn-cancel" th:href="@{/entregas(q=${q},estado=${estado},page=${currentPage},id=${selectedId})}">Cancelar</a></div>
                 </form>
@@ -93,11 +101,11 @@
                         <span class="badge badge-pendiente" th:text="${e.estadoEntrega != null ? e.estadoEntrega.descripcion : 'Programado'}"></span>
                     </div>
                     <p th:text="${e.comunidad != null ? e.comunidad.nombre : 'Sin comunidad'}"></p>
-                    <small th:text="${(e.donacion != null ? ('DON-' + e.donacion.idDonacion) : 'Sin donacion') + ' - Programada: ' + (e.fechaProgramada != null ? e.fechaProgramada : '-') + ' - Entrega: ' + (e.fechaEntrega != null ? e.fechaEntrega : '-')}"></small>
+                    <small th:text="${(e.donacion != null ? ('DON-' + e.donacion.idDonacion) : 'Sin donacion') + ' - Programada: ' + (e.fechaProgramada != null ? #dates.format(e.fechaProgramada, 'dd/MM/yyyy HH:mm') : '-') + ' - Entrega: ' + (e.fechaEntrega != null ? #dates.format(e.fechaEntrega, 'dd/MM/yyyy HH:mm') : '-')}"></small>
                     <div class="row-actions">
                         <a class="btn-mini btn-edit" th:href="@{/entregas(editarId=${e.idEntrega},q=${q},estado=${estado},page=${currentPage})}">Editar</a>
                         <form th:if="${e.estadoEntrega != null and e.estadoEntrega.descripcion != 'Entregado'}" method="post" th:action="@{/entregas}" class="inline-form">
-                            <input type="hidden" name="accion" value="cambiar_estado"><input type="hidden" name="id" th:value="${e.idEntrega}"><input type="hidden" name="id_estado_entrega" value="3"><input type="hidden" name="fecha_entrega" th:value="${hoy}">
+                            <input type="hidden" name="accion" value="cambiar_estado"><input type="hidden" name="id" th:value="${e.idEntrega}"><input type="hidden" name="id_estado_entrega" value="3"><input type="hidden" name="fecha_entrega" th:value="${ahora}">
                             <button class="btn-mini btn-ok" type="submit">Marcar Entregado</button>
                         </form>
                     </div>
@@ -120,14 +128,14 @@
                     <p><strong>Monto donado:</strong> <span th:text="${detalle.donacion != null and detalle.donacion.monto != null ? ('S/ ' + detalle.donacion.monto) : 'No monetaria'}"></span></p>
                     <p><strong>Comunidad:</strong> <span th:text="${detalle.comunidad != null ? detalle.comunidad.nombre : ''}"></span></p>
                     <p><strong>Estado:</strong> <span th:text="${detalle.estadoEntrega != null ? detalle.estadoEntrega.descripcion : ''}"></span></p>
-                    <p><strong>Fecha programada:</strong> <span th:text="${detalle.fechaProgramada != null ? detalle.fechaProgramada : '-'}"></span></p>
-                    <p><strong>Fecha entrega:</strong> <span th:text="${detalle.fechaEntrega != null ? detalle.fechaEntrega : '-'}"></span></p>
+                    <p><strong>Fecha programada:</strong> <span th:text="${detalle.fechaProgramada != null ? #dates.format(detalle.fechaProgramada, 'dd/MM/yyyy HH:mm') : '-'}"></span></p>
+                    <p><strong>Fecha entrega:</strong> <span th:text="${detalle.fechaEntrega != null ? #dates.format(detalle.fechaEntrega, 'dd/MM/yyyy HH:mm') : '-'}"></span></p>
                 </div>
 
                 <form th:if="${detalle != null}" method="post" th:action="@{/entregas}" class="form-grid form-panel">
                     <input type="hidden" name="accion" value="cambiar_estado"><input type="hidden" name="id" th:value="${detalle.idEntrega}">
                     <div><label>Actualizar estado</label><select name="id_estado_entrega" required><option th:each="e : ${estados}" th:value="${e.idEstadoEntrega}" th:text="${e.descripcion}" th:selected="${detalle.estadoEntrega != null and detalle.estadoEntrega.idEstadoEntrega == e.idEstadoEntrega}"></option></select></div>
-                    <div><label>Fecha entrega</label><input type="date" name="fecha_entrega" th:value="${detalle.fechaEntrega != null ? detalle.fechaEntrega : hoy}"></div>
+                    <div><label>Fecha y hora entrega</label><input type="datetime-local" name="fecha_entrega" th:value="${detalle.fechaEntrega != null ? #dates.format(detalle.fechaEntrega, 'yyyy-MM-dd''T''HH:mm') : ahora}"></div>
                     <div class="full"><label>Observaciones</label><textarea name="observaciones" rows="3" th:text="${detalle.observaciones}"></textarea></div>
                     <div class="full form-actions"><button type="submit">Guardar Estado</button></div>
                 </form>
