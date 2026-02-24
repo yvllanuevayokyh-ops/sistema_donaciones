@@ -212,11 +212,17 @@ public class ComunidadDAO {
 
     private int extractGeneratedId(StoredProcedureQuery sp) {
         @SuppressWarnings("unchecked")
-        List<Object[]> result = sp.getResultList();
-        if (result == null || result.isEmpty() || result.get(0).length == 0) {
+        List<Object> result = sp.getResultList();
+        if (result == null || result.isEmpty()) {
             return 0;
         }
-        return toInt(result.get(0)[0]);
+
+        Object first = result.get(0);
+        if (first instanceof Object[]) {
+            Object[] row = (Object[]) first;
+            return row.length == 0 ? 0 : toInt(row[0]);
+        }
+        return toInt(first);
     }
 
     private int toInt(Object value) {
