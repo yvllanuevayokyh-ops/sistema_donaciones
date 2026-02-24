@@ -39,9 +39,9 @@
         </div>
 
         <section class="stats finance-stats">
-            <article class="stat"><h3>Total Recaudado</h3><strong th:text="${'S/ ' + totalRecaudado}">S/0</strong><small th:text="${'Ultima donacion: ' + ultimaDonacion}">Ultima donacion: sin registro</small></article>
-            <article class="stat"><h3>Total Entregado</h3><strong th:text="${'S/ ' + totalEntregado}">S/0</strong><small th:text="${'Ultima entrega: ' + ultimaEntrega}">Ultima entrega: sin registro</small></article>
-            <article class="stat"><h3>Saldo Disponible</h3><strong th:text="${'S/ ' + saldoDisponible}">S/0</strong><small><span th:text="${totalDonaciones}"></span> donaciones - <span th:text="${totalEntregas}"></span> entregas</small></article>
+            <article class="stat"><h3>Total Recaudado</h3><strong th:text="${'S/ ' + #numbers.formatDecimal(totalRecaudado, 1, 'COMMA', 2, 'POINT')}">S/ 0.00</strong><small th:text="${'Ultima donacion: ' + ultimaDonacion}">Ultima donacion: sin registro</small></article>
+            <article class="stat"><h3>Total Entregado</h3><strong th:text="${'S/ ' + #numbers.formatDecimal(totalEntregado, 1, 'COMMA', 2, 'POINT')}">S/ 0.00</strong><small th:text="${'Ultima entrega: ' + ultimaEntrega}">Ultima entrega: sin registro</small></article>
+            <article class="stat"><h3>Saldo Disponible</h3><strong th:text="${'S/ ' + #numbers.formatDecimal(saldoDisponible, 1, 'COMMA', 2, 'POINT')}">S/ 0.00</strong><small><span th:text="${totalDonaciones}"></span> donaciones - <span th:text="${totalEntregas}"></span> entregas</small></article>
         </section>
 
         <section class="finance-grid">
@@ -66,9 +66,9 @@
                         <tr th:each="row, st : ${porCampania}">
                             <td th:text="${st.count}"></td>
                             <td th:text="${row[1]}"></td>
-                            <td th:text="${'S/ ' + row[2]}"></td>
-                            <td th:text="${'S/ ' + row[3]}"></td>
-                            <td th:text="${'S/ ' + row[4]}"></td>
+                            <td th:text="${'S/ ' + #numbers.formatDecimal(row[2], 1, 'COMMA', 2, 'POINT')}"></td>
+                            <td th:text="${'S/ ' + #numbers.formatDecimal(row[3], 1, 'COMMA', 2, 'POINT')}"></td>
+                            <td th:text="${'S/ ' + #numbers.formatDecimal(row[4], 1, 'COMMA', 2, 'POINT')}"></td>
                             <td th:text="${row[5]}"></td>
                             <td th:text="${row[6] != null ? #dates.format(row[6], 'dd/MM/yyyy HH:mm') : #dates.format(fechaReporteDateTime, 'dd/MM/yyyy HH:mm')}"></td>
                             <td th:text="${row[7] != null ? #dates.format(row[7], 'dd/MM/yyyy HH:mm') : #dates.format(fechaReporteDateTime, 'dd/MM/yyyy HH:mm')}"></td>
@@ -102,7 +102,7 @@
                             <td th:text="${row[2]}"></td>
                             <td th:text="${row[3]}"></td>
                             <td th:text="${row[4]}"></td>
-                            <td th:text="${'S/ ' + row[5]}"></td>
+                            <td th:text="${'S/ ' + #numbers.formatDecimal(row[5], 1, 'COMMA', 2, 'POINT')}"></td>
                             <td th:text="${row[6] != null ? #dates.format(row[6], 'dd/MM/yyyy HH:mm') : #dates.format(fechaReporteDateTime, 'dd/MM/yyyy HH:mm')}"></td>
                             <td th:text="${row[7] != null ? #dates.format(row[7], 'dd/MM/yyyy HH:mm') : #dates.format(fechaReporteDateTime, 'dd/MM/yyyy HH:mm')}"></td>
                         </tr>
