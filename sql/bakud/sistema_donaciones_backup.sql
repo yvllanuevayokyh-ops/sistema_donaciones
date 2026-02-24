@@ -1,5 +1,5 @@
 ﻿-- Backup funcional consolidado
--- Generado: 2026-02-23 20:44:55
+-- Generado: 2026-02-23 21:36:55
 -- Base: sistema_donaciones
 USE sistema_donaciones;
 
