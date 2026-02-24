@@ -6,7 +6,9 @@ import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -342,7 +344,7 @@ public class FinanzasController {
             cell.setCellValue(date);
             cell.setCellStyle(style);
         } else {
-            cell.setCellValue("");
+            cell.setCellValue("Sin registro");
         }
     }
 
@@ -361,6 +363,54 @@ public class FinanzasController {
     private Date toDate(Object value) {
         if (value instanceof Date) {
             return (Date) value;
+        }
+        if (value instanceof LocalDateTime) {
+            return Date.from(((LocalDateTime) value).atZone(ZoneId.systemDefault()).toInstant());
+        }
+        if (value instanceof LocalDate) {
+            return Date.from(((LocalDate) value).atStartOfDay(ZoneId.systemDefault()).toInstant());
+        }
+        if (value instanceof Number) {
+            return new Date(((Number) value).longValue());
+        }
+        if (value != null) {
+            String text = String.valueOf(value).trim();
+            if (text.isEmpty()) {
+                return null;
+            }
+            Date parsed = parseDateText(text);
+            if (parsed != null) {
+                return parsed;
+            }
+        }
+        return null;
+    }
+
+    private Date parseDateText(String text) {
+        DateTimeFormatter[] dateTimeFormats = new DateTimeFormatter[]{
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss"),
+                DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm"),
+                DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm:ss"),
+                DateTimeFormatter.ofPattern("dd/MM/yyyy HH:mm")
+        };
+        for (DateTimeFormatter formatter : dateTimeFormats) {
+            try {
+                LocalDateTime dt = LocalDateTime.parse(text, formatter);
+                return Date.from(dt.atZone(ZoneId.systemDefault()).toInstant());
+            } catch (DateTimeParseException ignored) {
+            }
+        }
+
+        DateTimeFormatter[] dateFormats = new DateTimeFormatter[]{
+                DateTimeFormatter.ofPattern("yyyy-MM-dd"),
+                DateTimeFormatter.ofPattern("dd/MM/yyyy")
+        };
+        for (DateTimeFormatter formatter : dateFormats) {
+            try {
+                LocalDate d = LocalDate.parse(text, formatter);
+                return Date.from(d.atStartOfDay(ZoneId.systemDefault()).toInstant());
+            } catch (DateTimeParseException ignored) {
+            }
         }
         return null;
     }
