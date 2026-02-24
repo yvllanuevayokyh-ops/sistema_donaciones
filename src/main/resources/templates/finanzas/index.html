@@ -1,0 +1,109 @@
+﻿<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Finanzas - Sistema Donaciones</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+<div class="dashboard-shell">
+    <aside class="sidebar">
+        <div><h2>Donaciones</h2><p>Sistema de Gestion</p></div>
+        <div class="user-box"><strong th:text="${usuarioNombre}"></strong><span th:text="${usuarioRol}"></span></div>
+        <ul class="menu">
+            <li><a th:href="@{/home}">Dashboard</a></li>
+            <li><a th:href="@{/roles}">Roles y Permisos</a></li>
+            <li><a th:href="@{/donaciones}">Donaciones</a></li>
+            <li><a th:href="@{/comunidades}">Comunidades</a></li>
+            <li><a th:href="@{/instituciones}">Instituciones</a></li>
+            <li><a th:href="@{/voluntarios}">Voluntarios</a></li>
+            <li><a th:href="@{/campanias}">Campanias</a></li>
+            <li><a th:href="@{/entregas}">Entregas</a></li>
+            <li class="active"><a th:href="@{/finanzas}">Finanzas</a></li>
+        </ul>
+        <a class="logout" th:href="@{/logout}">Cerrar Sesion</a>
+    </aside>
+
+    <main class="main">
+        <p th:if="${flashMessage}" class="flash" th:classappend="${flashError} ? ' flash-error' : ' flash-ok'" th:text="${flashMessage}"></p>
+
+        <div class="top-title">
+            <div>
+                <h1>Gestion Financiera</h1>
+                <p class="muted">Control del dinero recaudado, entregado y disponible</p>
+                <p class="muted">Orden campanias: <strong th:text="${ordenCampania}"></strong> | Orden comunidades: <strong th:text="${ordenComunidad}"></strong></p>
+                <p class="muted">Fecha reporte: <strong th:text="${fechaReporte}"></strong> | Hora reporte: <strong th:text="${horaReporte}"></strong></p>
+            </div>
+        </div>
+
+        <section class="stats finance-stats">
+            <article class="stat"><h3>Total Recaudado</h3><strong th:text="${'S/ ' + totalRecaudado}">S/0</strong><small>Donaciones monetarias activas</small></article>
+            <article class="stat"><h3>Total Entregado</h3><strong th:text="${'S/ ' + totalEntregado}">S/0</strong><small>Monto asociado a entregas completadas</small></article>
+            <article class="stat"><h3>Saldo Disponible</h3><strong th:text="${'S/ ' + saldoDisponible}">S/0</strong><small><span th:text="${totalDonaciones}"></span> donaciones - <span th:text="${totalEntregas}"></span> entregas</small></article>
+        </section>
+
+        <section class="finance-grid">
+            <article class="panel">
+                <h3>Resumen por Campania</h3>
+                <div class="table-wrap">
+                    <table class="table-fin">
+                        <thead>
+                        <tr>
+                            <th>Orden</th>
+                            <th>Campania</th>
+                            <th>Meta</th>
+                            <th>Recaudado</th>
+                            <th>Saldo</th>
+                            <th>Donaciones</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:if="${porCampania == null or #lists.isEmpty(porCampania)}"><td colspan="6" class="muted">No hay datos de campanias.</td></tr>
+                        <tr th:each="row, st : ${porCampania}">
+                            <td th:text="${st.count}"></td>
+                            <td th:text="${row[1]}"></td>
+                            <td th:text="${'S/ ' + row[2]}"></td>
+                            <td th:text="${'S/ ' + row[3]}"></td>
+                            <td th:text="${'S/ ' + row[4]}"></td>
+                            <td th:text="${row[5]}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+
+            <article class="panel">
+                <h3>Resumen por Comunidad</h3>
+                <div class="table-wrap">
+                    <table class="table-fin">
+                        <thead>
+                        <tr>
+                            <th>Orden</th>
+                            <th>Comunidad</th>
+                            <th>Beneficiarios</th>
+                            <th>Entregas</th>
+                            <th>Completadas</th>
+                            <th>Monto recibido</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:if="${porComunidad == null or #lists.isEmpty(porComunidad)}"><td colspan="6" class="muted">No hay datos de comunidades.</td></tr>
+                        <tr th:each="row, st : ${porComunidad}">
+                            <td th:text="${st.count}"></td>
+                            <td th:text="${row[1]}"></td>
+                            <td th:text="${row[2]}"></td>
+                            <td th:text="${row[3]}"></td>
+                            <td th:text="${row[4]}"></td>
+                            <td th:text="${'S/ ' + row[5]}"></td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </article>
+        </section>
+    </main>
+</div>
+</body>
+</html>

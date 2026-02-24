@@ -2,33 +2,29 @@ package com.donaciones.controller;
 
 import com.donaciones.dao.DashboardDAO;
 import com.donaciones.dao.DonanteDAO;
-import java.io.IOException;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
 
-@WebServlet(name = "HomeServlet", urlPatterns = {"/home"})
-public class HomeServlet extends HttpServlet {
+@Controller
+public class HomeServlet {
 
     private final DashboardDAO dashboardDAO = new DashboardDAO();
     private final DonanteDAO donanteDAO = new DonanteDAO();
 
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        if (request.getSession(false) == null || request.getSession(false).getAttribute("usuarioNombre") == null) {
-            response.sendRedirect(request.getContextPath() + "/login");
-            return;
+    @GetMapping("/home")
+    public String mostrarHome(HttpSession session, Model model) {
+        if (session == null || session.getAttribute("usuarioNombre") == null) {
+            return "redirect:/login";
         }
 
-        String usuarioRol = safe((String) request.getSession(false).getAttribute("usuarioRol"));
-        String usuarioEmail = safe((String) request.getSession(false).getAttribute("usuarioEmail"));
-        String usuarioNombre = safe((String) request.getSession(false).getAttribute("usuarioNombre"));
+        String usuarioRol = safe((String) session.getAttribute("usuarioRol"));
+        String usuarioEmail = safe((String) session.getAttribute("usuarioEmail"));
+        String usuarioNombre = safe((String) session.getAttribute("usuarioNombre"));
         boolean donanteView = isDonanteRole(usuarioRol);
         boolean comunidadView = isComunidadRole(usuarioRol);
 
@@ -98,7 +94,7 @@ public class HomeServlet extends HttpServlet {
             }
         } catch (Exception ex) {
             ex.printStackTrace();
-            request.getSession().setAttribute("mensaje", "Error: no se pudieron cargar datos del dashboard");
+            session.setAttribute("mensaje", "Error: no se pudieron cargar datos del dashboard");
         }
 
         int tasaEntregas = 0;
@@ -106,25 +102,28 @@ public class HomeServlet extends HttpServlet {
             tasaEntregas = (dashboardData.entregasEntregadas * 100) / dashboardData.entregasTotales;
         }
 
-        request.setAttribute("isDonanteView", dashboardData.donanteView);
-        request.setAttribute("isComunidadView", dashboardData.comunidadView);
-        request.setAttribute("perfilDonanteVinculado", dashboardData.perfilDonanteVinculado);
-        request.setAttribute("fechaActual", dashboardData.fechaActual);
-        request.setAttribute("totalDonaciones", dashboardData.totalDonaciones);
-        request.setAttribute("totalComunidades", dashboardData.totalComunidades);
-        request.setAttribute("totalInstituciones", dashboardData.totalInstituciones);
-        request.setAttribute("totalCampaniasActivas", dashboardData.totalCampaniasActivas);
-        request.setAttribute("totalBeneficiarios", dashboardData.totalBeneficiarios);
-        request.setAttribute("voluntariosActivos", dashboardData.voluntariosActivos);
-        request.setAttribute("tasaEntregas", tasaEntregas);
-        request.setAttribute("campaniasCompletadas", dashboardData.campaniasCompletadas);
-        request.setAttribute("totalCampanias", dashboardData.totalCampanias);
-        request.setAttribute("donacionesRecientes", dashboardData.donacionesRecientes);
-        request.setAttribute("misDonaciones", dashboardData.misDonaciones);
-        request.setAttribute("misDonacionesPendientes", dashboardData.misDonacionesPendientes);
-        request.setAttribute("montoDonado", dashboardData.montoDonado);
+        model.addAttribute("usuarioNombre", usuarioNombre);
+        model.addAttribute("usuarioRol", usuarioRol);
+        model.addAttribute("isDonanteView", dashboardData.donanteView);
+        model.addAttribute("isComunidadView", dashboardData.comunidadView);
+        model.addAttribute("perfilDonanteVinculado", dashboardData.perfilDonanteVinculado);
+        model.addAttribute("fechaActual", dashboardData.fechaActual);
+        model.addAttribute("totalDonaciones", dashboardData.totalDonaciones);
+        model.addAttribute("totalComunidades", dashboardData.totalComunidades);
+        model.addAttribute("totalInstituciones", dashboardData.totalInstituciones);
+        model.addAttribute("totalCampaniasActivas", dashboardData.totalCampaniasActivas);
+        model.addAttribute("totalBeneficiarios", dashboardData.totalBeneficiarios);
+        model.addAttribute("voluntariosActivos", dashboardData.voluntariosActivos);
+        model.addAttribute("tasaEntregas", tasaEntregas);
+        model.addAttribute("campaniasCompletadas", dashboardData.campaniasCompletadas);
+        model.addAttribute("totalCampanias", dashboardData.totalCampanias);
+        model.addAttribute("donacionesRecientes", dashboardData.donacionesRecientes);
+        model.addAttribute("misDonaciones", dashboardData.misDonaciones);
+        model.addAttribute("misDonacionesPendientes", dashboardData.misDonacionesPendientes);
+        model.addAttribute("montoDonado", dashboardData.montoDonado);
 
-        request.getRequestDispatcher("/views/home.jsp").forward(request, response);
+        consumeFlash(session, model);
+        return "home/index";
     }
 
     private boolean isDonanteRole(String rol) {
@@ -137,6 +136,16 @@ public class HomeServlet extends HttpServlet {
 
     private String safe(String value) {
         return value == null ? "" : value;
+    }
+
+    private void consumeFlash(HttpSession session, Model model) {
+        Object msg = session.getAttribute("mensaje");
+        if (msg instanceof String) {
+            String value = (String) msg;
+            model.addAttribute("flashMessage", value);
+            model.addAttribute("flashError", value.startsWith("Error"));
+            session.removeAttribute("mensaje");
+        }
     }
 
     private static class DashboardData {

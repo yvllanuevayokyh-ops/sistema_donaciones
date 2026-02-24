@@ -1,0 +1,145 @@
+﻿<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Instituciones - Sistema Donaciones</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+<div class="dashboard-shell">
+    <aside class="sidebar">
+        <div><h2>Donaciones</h2><p>Sistema de Gestion</p></div>
+        <div class="user-box"><strong th:text="${usuarioNombre}">Usuario</strong><span th:text="${usuarioRol}">Rol</span></div>
+        <ul class="menu">
+            <li><a th:href="@{/home}">Dashboard</a></li>
+            <li><a th:href="@{/roles}">Roles y Permisos</a></li>
+            <li><a th:href="@{/donaciones}">Donaciones</a></li>
+            <li><a th:href="@{/comunidades}">Comunidades</a></li>
+            <li class="active"><a th:href="@{/instituciones}">Instituciones</a></li>
+            <li><a th:href="@{/voluntarios}">Voluntarios</a></li>
+            <li><a th:href="@{/campanias}">Campanias</a></li>
+            <li><a th:href="@{/entregas}">Entregas</a></li>
+            <li><a th:href="@{/finanzas}">Finanzas</a></li>
+        </ul>
+        <a class="logout" th:href="@{/logout}">Cerrar Sesion</a>
+    </aside>
+
+    <main class="main">
+        <p th:if="${flashMessage}" class="flash" th:classappend="${flashError} ? ' flash-error' : ' flash-ok'" th:text="${flashMessage}"></p>
+        <div class="top-title">
+            <div>
+                <h1>Instituciones Donantes</h1>
+                <p class="muted">Gestion de instituciones</p>
+            </div>
+            <a class="btn-new" th:href="@{/instituciones(nuevo=1,q=${q},situacion=${situacion},page=${currentPage})}">+ Nueva Institucion</a>
+        </div>
+
+        <form method="get" th:action="@{/instituciones}" class="toolbar toolbar-simple">
+            <input type="hidden" name="page" value="1">
+            <input type="text" name="q" th:value="${q}" placeholder="Buscar por nombre, pais o direccion">
+            <select name="situacion">
+                <option value="Activos" th:selected="${situacion == 'Activos'}">Activos</option>
+                <option value="Inactivos" th:selected="${situacion == 'Inactivos'}">Inactivos</option>
+                <option value="Todos" th:selected="${situacion == 'Todos'}">Todos</option>
+            </select>
+            <button type="submit">Buscar</button>
+        </form>
+
+        <section class="donaciones-layout">
+            <article class="panel" th:if="${showForm}">
+                <h3 th:text="${edicion != null} ? 'Editar Institucion' : 'Nueva Institucion'">Nueva Institucion</h3>
+                <form method="post" th:action="@{/instituciones}" class="form-grid">
+                    <input type="hidden" name="accion" th:value="${edicion != null ? 'editar' : 'crear'}">
+                    <input th:if="${edicion != null}" type="hidden" name="id_donante" th:value="${edicion.idDonante}">
+                    <div>
+                        <label>Nombre</label>
+                        <input type="text" name="nombre" required th:value="${edicion != null ? edicion.nombre : ''}">
+                    </div>
+                    <div>
+                        <label>Tipo</label>
+                        <select name="tipo_donante">
+                            <option value="Institucion" th:selected="${edicion == null or edicion.tipoDonante == 'Institucion'}">Institucion</option>
+                            <option value="ONG" th:selected="${edicion != null and edicion.tipoDonante == 'ONG'}">ONG</option>
+                            <option value="Fundacion" th:selected="${edicion != null and edicion.tipoDonante == 'Fundacion'}">Fundacion</option>
+                            <option value="Organizacion Internacional" th:selected="${edicion != null and edicion.tipoDonante == 'Organizacion Internacional'}">Organizacion Internacional</option>
+                        </select>
+                    </div>
+                    <div><label>Email</label><input type="email" name="email" th:value="${edicion != null ? edicion.email : ''}"></div>
+                    <div><label>Telefono</label><input type="text" name="telefono" th:value="${edicion != null ? edicion.telefono : ''}"></div>
+                    <div><label>Direccion</label><input type="text" name="direccion" th:value="${edicion != null ? edicion.direccion : ''}"></div>
+                    <div>
+                        <label>Pais</label>
+                        <select name="id_pais" required>
+                            <option value="">Selecciona pais</option>
+                            <option th:each="p : ${paises}" th:value="${p.idPais}" th:text="${p.nombre}"
+                                    th:selected="${edicion != null and edicion.pais != null and edicion.pais.idPais == p.idPais}"></option>
+                        </select>
+                    </div>
+                    <div th:if="${edicion == null}">
+                        <label>Fecha registro</label>
+                        <input type="date" name="fecha_registro" th:value="${hoy}">
+                    </div>
+                    <div class="full form-actions">
+                        <button type="submit" th:text="${edicion != null} ? 'Guardar Cambios' : 'Guardar Institucion'">Guardar</button>
+                        <a class="btn-cancel" th:href="@{/instituciones(q=${q},situacion=${situacion},page=${currentPage},id=${selectedId})}">Cancelar</a>
+                    </div>
+                </form>
+            </article>
+
+            <article class="panel" th:if="${!showForm}">
+                <h3>Instituciones (<span th:text="${totalRows}">0</span>)</h3>
+                <p class="muted">Pagina <span th:text="${currentPage}">1</span> de <span th:text="${totalPages}">1</span></p>
+                <div th:if="${instituciones != null and !#lists.isEmpty(instituciones)}" th:each="i : ${instituciones}"
+                     th:class="${selectedId != null and selectedId == i.idDonante} ? 'inst-item active' : 'inst-item'">
+                    <div class="inst-item-head">
+                        <a class="item-link" th:href="@{/instituciones(id=${i.idDonante},q=${q},situacion=${situacion},page=${currentPage})}"><strong th:text="${i.nombre}">Nombre</strong></a>
+                        <span class="badge" th:classappend="${i.activo} ? ' badge-entregado' : ' badge-cancelado'"
+                              th:text="${i.activo} ? 'Activo' : 'Inactivo'">Activo</span>
+                        <span class="date" th:text="${(donacionesPorInstitucion != null and donacionesPorInstitucion[i.idDonante] != null ? donacionesPorInstitucion[i.idDonante] : 0) + ' donaciones'}">0</span>
+                    </div>
+                    <p th:text="${i.tipoDonante}">Tipo</p>
+                    <small th:text="${(i.direccion != null ? i.direccion : '') + ', ' + (i.pais != null ? i.pais.nombre : '')}">Direccion</small>
+                    <div class="row-actions">
+                        <a class="btn-mini btn-edit" th:href="@{/instituciones(editarId=${i.idDonante},q=${q},situacion=${situacion},page=${currentPage})}">Editar</a>
+                        <form th:if="${i.activo}" method="post" th:action="@{/instituciones}" class="inline-form">
+                            <input type="hidden" name="accion" value="eliminar"><input type="hidden" name="id" th:value="${i.idDonante}">
+                            <button class="btn-mini btn-danger" type="submit">Eliminar</button>
+                        </form>
+                        <form th:if="${!i.activo}" method="post" th:action="@{/instituciones}" class="inline-form">
+                            <input type="hidden" name="accion" value="restaurar"><input type="hidden" name="id" th:value="${i.idDonante}">
+                            <button class="btn-mini btn-ok" type="submit">Restaurar</button>
+                        </form>
+                    </div>
+                </div>
+                <p th:if="${instituciones == null or #lists.isEmpty(instituciones)}" class="muted">No se encontraron instituciones.</p>
+
+                <div th:if="${totalPages != null and totalPages > 1}" class="pagination">
+                    <a class="page-link" th:if="${currentPage > 1}" th:href="@{/instituciones(page=${currentPage-1},q=${q},situacion=${situacion})}">Anterior</a>
+                    <span th:each="p : ${#numbers.sequence(1,totalPages)}">
+                        <a class="page-link" th:classappend="${p == currentPage} ? ' current' : ''" th:href="@{/instituciones(page=${p},q=${q},situacion=${situacion})}" th:text="${p}"></a>
+                    </span>
+                    <a class="page-link" th:if="${currentPage < totalPages}" th:href="@{/instituciones(page=${currentPage+1},q=${q},situacion=${situacion})}">Siguiente</a>
+                </div>
+            </article>
+
+            <aside class="panel">
+                <h3>Informacion de Institucion</h3>
+                <div th:if="${detalle != null}" class="detail-list">
+                    <p><strong>Nombre:</strong> <span th:text="${detalle.nombre}">-</span></p>
+                    <p><strong>Tipo:</strong> <span th:text="${detalle.tipoDonante}">-</span></p>
+                    <p><strong>Ubicacion:</strong> <span th:text="${(detalle.direccion != null ? detalle.direccion : '') + ', ' + (detalle.pais != null ? detalle.pais.nombre : '')}">-</span></p>
+                    <p><strong>Email:</strong> <span th:text="${detalle.email}">-</span></p>
+                    <p><strong>Telefono:</strong> <span th:text="${detalle.telefono}">-</span></p>
+                    <p><strong>Registro:</strong> <span th:text="${detalle.fechaRegistro}">-</span></p>
+                    <p><strong>Donaciones:</strong> <span th:text="${totalDonacionesDetalle}">0</span></p>
+                    <p><strong>Situacion:</strong> <span th:text="${detalle.activo} ? 'Activo' : 'Inactivo'">-</span></p>
+                </div>
+                <p th:if="${detalle == null}" class="muted">Selecciona una institucion para ver detalles.</p>
+            </aside>
+        </section>
+    </main>
+</div>
+</body>
+</html>

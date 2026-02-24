@@ -11,24 +11,24 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 
-@WebServlet(name = "CampaniaServlet", urlPatterns = {"/campanias"})
-public class CampaniaServlet extends HttpServlet {
+@Controller
+public class CampaniaServlet {
 
     private static final int PAGE_SIZE = 4;
 
     private final CampaniaDAO campaniaDAO = new CampaniaDAO();
 
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    @GetMapping("/campanias")
+    public String doGet(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         if (!isAuthenticated(request, response)) {
-            return;
+            return null;
         }
 
         boolean donanteView = isDonanteRole(request);
@@ -134,12 +134,11 @@ public class CampaniaServlet extends HttpServlet {
         request.setAttribute("recaudadoDetalle", recaudadoDetalle);
         request.setAttribute("totalDonacionesDetalle", totalDonacionesDetalle);
 
-        String view = showForm ? "/views/campanias/formulario.jsp" : "/views/campanias/lista.jsp";
-        request.getRequestDispatcher(view).forward(request, response);
+        return "campanias/index";
     }
 
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+    @PostMapping("/campanias")
+    public void doPost(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         if (!isAuthenticated(request, response)) {
             return;

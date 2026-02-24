@@ -1,0 +1,176 @@
+﻿<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Roles y Permisos - Sistema Donaciones</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+<div class="dashboard-shell">
+    <aside class="sidebar">
+        <div>
+            <h2>Donaciones</h2>
+            <p>Sistema de Gestion</p>
+        </div>
+
+        <div class="user-box">
+            <strong th:text="${usuarioNombre}">Usuario</strong>
+            <span th:text="${usuarioRol}">Rol</span>
+        </div>
+
+        <ul class="menu">
+            <li><a th:href="@{/home}">Dashboard</a></li>
+            <li class="active"><a th:href="@{/roles}">Roles y Permisos</a></li>
+            <li><a th:href="@{/donaciones}">Donaciones</a></li>
+            <li><a th:href="@{/comunidades}">Comunidades</a></li>
+            <li><a th:href="@{/instituciones}">Instituciones</a></li>
+            <li><a th:href="@{/voluntarios}">Voluntarios</a></li>
+            <li><a th:href="@{/campanias}">Campanias</a></li>
+            <li><a th:href="@{/entregas}">Entregas</a></li>
+            <li><a th:href="@{/finanzas}">Finanzas</a></li>
+        </ul>
+
+        <a class="logout" th:href="@{/logout}">Cerrar Sesion</a>
+    </aside>
+
+    <main class="main">
+        <p th:if="${flashMessage}" class="flash" th:classappend="${flashError} ? ' flash-error' : ' flash-ok'" th:text="${flashMessage}"></p>
+
+        <div class="top-title">
+            <div>
+                <h1>Roles y Permisos</h1>
+                <p class="muted">Gestion de roles del sistema</p>
+            </div>
+            <div class="top-actions">
+                <a class="btn-new" th:href="@{/roles(nuevo=1,id=${selectedId},q=${q},page=${currentPage})}">+ Nuevo Rol</a>
+                <a class="btn-new btn-alt" th:href="@{/roles(nuevoPermiso=1,id=${selectedId},q=${q},page=${currentPage})}">+ Nuevo Permiso</a>
+            </div>
+        </div>
+
+        <section class="stats">
+            <article class="stat">
+                <h3>Total Roles</h3>
+                <strong th:text="${totalRoles}">0</strong>
+            </article>
+            <article class="stat">
+                <h3>Total Permisos</h3>
+                <strong th:text="${totalPermisos}">0</strong>
+            </article>
+            <article class="stat">
+                <h3>Asignaciones</h3>
+                <strong th:text="${totalAsignaciones}">0</strong>
+            </article>
+        </section>
+
+        <form method="get" th:action="@{/roles}" class="toolbar toolbar-simple">
+            <input type="hidden" name="page" value="1">
+            <input type="text" name="q" th:value="${q}" placeholder="Buscar rol por nombre">
+            <button type="submit">Buscar</button>
+            <a class="btn-cancel" th:href="@{/roles}">Limpiar</a>
+        </form>
+
+        <section class="donaciones-layout">
+            <article class="panel">
+                <h3>Roles (<span th:text="${totalRows}">0</span>)</h3>
+                <p class="muted">Pagina <span th:text="${currentPage}">1</span> de <span th:text="${totalPages}">1</span></p>
+
+                <div th:if="${roles != null and !#lists.isEmpty(roles)}" th:each="row : ${roles}"
+                     th:class="${selectedId != null and selectedId == T(java.lang.Integer).parseInt(row[0])} ? 'rol-item active' : 'rol-item'">
+                    <div class="rol-item-head">
+                        <a class="item-link" th:href="@{/roles(id=${row[0]},q=${q},page=${currentPage})}"><strong th:text="${row[1]}">Rol</strong></a>
+                        <span class="badge badge-entregado" th:text="${row[2] + '/' + row[3] + ' permisos'}">0/0 permisos</span>
+                        <span class="date" th:text="${row[4] + ' usuarios'}">0 usuarios</span>
+                    </div>
+                    <div class="row-actions">
+                        <a class="btn-mini btn-edit" th:href="@{/roles(editarId=${row[0]},q=${q},page=${currentPage})}">Editar</a>
+                        <form th:if="${row[0] != '1'}" method="post" th:action="@{/roles}" class="inline-form">
+                            <input type="hidden" name="accion" value="eliminar">
+                            <input type="hidden" name="id" th:value="${row[0]}">
+                            <button class="btn-mini btn-danger" type="submit">Eliminar</button>
+                        </form>
+                    </div>
+                </div>
+
+                <p th:if="${roles == null or #lists.isEmpty(roles)}" class="muted">No se encontraron roles.</p>
+
+                <div th:if="${totalPages != null and totalPages > 1}" class="pagination pagination-tight">
+                    <a class="page-link" th:if="${currentPage > 1}" th:href="@{/roles(page=${currentPage-1},q=${q})}">Anterior</a>
+                    <span class="page-link current" th:text="${currentPage + ' / ' + totalPages}">1/1</span>
+                    <a class="page-link" th:if="${currentPage < totalPages}" th:href="@{/roles(page=${currentPage+1},q=${q})}">Siguiente</a>
+                </div>
+            </article>
+
+            <aside class="panel">
+                <div th:if="${showForm}">
+                    <h3 th:text="${edicion != null ? 'Editar Rol' : 'Nuevo Rol'}">Nuevo Rol</h3>
+                    <form method="post" th:action="@{/roles}" class="form-grid">
+                        <input type="hidden" name="accion" th:value="${edicion != null ? 'editar' : 'crear'}">
+                        <input th:if="${edicion != null}" type="hidden" name="id_rol" th:value="${edicion[0]}">
+                        <div class="full">
+                            <label>Nombre del rol</label>
+                            <input type="text" name="nombre" required th:value="${edicion != null ? edicion[1] : ''}">
+                        </div>
+                        <div class="full form-actions">
+                            <button type="submit" th:text="${edicion != null ? 'Guardar Cambios' : 'Crear Rol'}">Crear Rol</button>
+                            <a class="btn-cancel" th:href="@{/roles(id=${selectedId},q=${q},page=${currentPage})}">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+
+                <div th:if="${!showForm and showPermissionForm}">
+                    <h3>Nuevo Permiso</h3>
+                    <form method="post" th:action="@{/roles}" class="form-grid">
+                        <input type="hidden" name="accion" value="crear_permiso">
+                        <input type="hidden" name="selected_id" th:value="${selectedId}">
+                        <div>
+                            <label>Codigo</label>
+                            <input type="text" name="codigo" required>
+                        </div>
+                        <div>
+                            <label>Nombre</label>
+                            <input type="text" name="nombre" required>
+                        </div>
+                        <div class="full">
+                            <label>Descripcion</label>
+                            <textarea name="descripcion" rows="3"></textarea>
+                        </div>
+                        <div class="full form-actions">
+                            <button type="submit">Crear Permiso</button>
+                            <a class="btn-cancel" th:href="@{/roles(id=${selectedId},q=${q},page=${currentPage})}">Cancelar</a>
+                        </div>
+                    </form>
+                </div>
+
+                <div th:if="${!showForm and !showPermissionForm}">
+                    <h3>Permisos del Rol</h3>
+                    <div th:if="${detalle != null}">
+                        <div class="detail-list">
+                            <p><strong>Rol:</strong> <span th:text="${detalle[1]}">-</span></p>
+                            <p><strong>Permisos activos:</strong> <span th:text="${detalle[2] + ' / ' + detalle[3]}">0/0</span></p>
+                            <p><strong>Usuarios:</strong> <span th:text="${detalle[4]}">0</span></p>
+                        </div>
+                        <form method="post" th:action="@{/roles}">
+                            <input type="hidden" name="accion" value="guardar_permisos">
+                            <input type="hidden" name="id_rol" th:value="${detalle[0]}">
+                            <div class="perm-grid">
+                                <label class="perm-row" th:each="permiso : ${permisosRol}">
+                                    <input type="checkbox" name="permiso" th:value="${permiso[0]}" th:checked="${permiso[4] == '1'}">
+                                    <span>
+                                        <strong th:text="${permiso[2]}">Nombre</strong>
+                                        <small th:text="${permiso[1] + ' - ' + permiso[3]}">Codigo</small>
+                                    </span>
+                                </label>
+                            </div>
+                            <button type="submit">Guardar Permisos</button>
+                        </form>
+                    </div>
+                    <p th:if="${detalle == null}" class="muted">Selecciona un rol para administrar permisos.</p>
+                </div>
+            </aside>
+        </section>
+    </main>
+</div>
+</body>
+</html>

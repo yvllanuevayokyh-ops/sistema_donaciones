@@ -1,0 +1,212 @@
+﻿<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Donaciones - Sistema Donaciones</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+<div class="dashboard-shell">
+    <aside class="sidebar">
+        <div>
+            <h2>Donaciones</h2>
+            <p>Sistema de Gestion</p>
+        </div>
+        <div class="user-box">
+            <strong th:text="${usuarioNombre}">Usuario</strong>
+            <span th:text="${usuarioRol}">Rol</span>
+        </div>
+        <ul class="menu">
+            <th:block th:if="${isRoleDonante}">
+                <li><a th:href="@{/home}">Dashboard</a></li>
+                <li class="active"><a th:href="@{/donaciones}">Mis Donaciones</a></li>
+                <li><a th:href="@{/campanias}">Campanias</a></li>
+            </th:block>
+            <th:block th:if="${!isRoleDonante}">
+                <li><a th:href="@{/home}">Dashboard</a></li>
+                <li><a th:href="@{/roles}">Roles y Permisos</a></li>
+                <li class="active"><a th:href="@{/donaciones}">Donaciones</a></li>
+                <li><a th:href="@{/comunidades}">Comunidades</a></li>
+                <li><a th:href="@{/instituciones}">Instituciones</a></li>
+                <li><a th:href="@{/voluntarios}">Voluntarios</a></li>
+                <li><a th:href="@{/campanias}">Campanias</a></li>
+                <li><a th:href="@{/entregas}">Entregas</a></li>
+                <li><a th:href="@{/finanzas}">Finanzas</a></li>
+            </th:block>
+        </ul>
+        <a class="logout" th:href="@{/logout}">Cerrar Sesion</a>
+    </aside>
+
+    <main class="main">
+        <p th:if="${flashMessage}" class="flash" th:classappend="${flashError} ? ' flash-error' : ' flash-ok'" th:text="${flashMessage}"></p>
+
+        <div class="top-title">
+            <div>
+                <h1 th:text="${isDonanteView} ? 'Mis Donaciones' : 'Gestion de Donaciones'">Donaciones</h1>
+                <p class="muted">Registro y seguimiento</p>
+            </div>
+            <a class="btn-new" th:href="@{/donaciones(nuevo=1,q=${q},estado=${estado},situacion=${situacion},page=${currentPage})}">+ Nueva Donacion</a>
+        </div>
+
+        <p th:if="${isDonanteView and !perfilDonanteVinculado}" class="muted">
+            No se encontro un perfil donante vinculado a tu cuenta. Solicita al administrador vincular tu email.
+        </p>
+
+        <form method="get" th:action="@{/donaciones}" class="toolbar">
+            <input type="hidden" name="page" value="1">
+            <input type="text" name="q" th:value="${q}" placeholder="Buscar por ID o descripcion">
+            <select name="estado">
+                <option value="Todas" th:selected="${estado == 'Todas'}">Estado: Todas</option>
+                <option value="Pendiente" th:selected="${estado == 'Pendiente'}">Pendiente</option>
+                <option value="En transito" th:selected="${estado == 'En transito'}">En transito</option>
+                <option value="Entregado" th:selected="${estado == 'Entregado'}">Entregado</option>
+                <option value="Cancelado" th:selected="${estado == 'Cancelado'}">Cancelado</option>
+            </select>
+            <select name="situacion">
+                <option value="Activos" th:selected="${situacion == 'Activos'}">Activos</option>
+                <option value="Inactivos" th:selected="${situacion == 'Inactivos'}">Inactivos</option>
+                <option value="Todos" th:selected="${situacion == 'Todos'}">Todos</option>
+            </select>
+            <button type="submit">Buscar</button>
+        </form>
+
+        <section class="donaciones-layout">
+            <article class="panel" th:if="${showForm}">
+                <h3 th:text="${edicion != null} ? 'Editar Donacion' : 'Nueva Donacion'">Nueva Donacion</h3>
+                <form method="post" th:action="@{/donaciones}" class="form-grid">
+                    <input type="hidden" name="accion" th:value="${edicion != null ? 'editar' : 'crear'}">
+                    <input th:if="${edicion != null}" type="hidden" name="id_donacion" th:value="${edicion.idDonacion}">
+
+                    <div>
+                        <label>Donante</label>
+                        <th:block th:if="${isDonanteView}">
+                            <input type="text" th:value="${donanteActualNombre}" readonly>
+                            <input type="hidden" name="id_donante" th:value="${idDonanteActual}">
+                        </th:block>
+                        <select th:if="${!isDonanteView}" name="id_donante" required>
+                            <option value="">Selecciona donante</option>
+                            <option th:each="d : ${donantes}" th:value="${d.idDonante}" th:text="${d.nombre}"
+                                    th:selected="${edicion != null and edicion.donante != null and edicion.donante.idDonante == d.idDonante}"></option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label>Campania (opcional)</label>
+                        <select name="id_campania">
+                            <option value="">Sin campania</option>
+                            <option th:each="c : ${campanias}" th:value="${c.idCampania}" th:text="${c.nombre}"
+                                    th:selected="${edicion != null and edicion.campania != null and edicion.campania.idCampania == c.idCampania}"></option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label>Tipo</label>
+                        <select name="tipo_donacion" required>
+                            <option value="Recurso" th:selected="${edicion == null or edicion.tipoDonacion == 'Recurso'}">Recurso</option>
+                            <option value="Monetaria" th:selected="${edicion != null and edicion.tipoDonacion == 'Monetaria'}">Monetaria</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label>Estado</label>
+                        <select name="estado_donacion" required>
+                            <option value="Pendiente" th:selected="${edicion == null or edicion.estadoDonacion == 'Pendiente'}">Pendiente</option>
+                            <option value="En transito" th:selected="${edicion != null and edicion.estadoDonacion == 'En transito'}">En transito</option>
+                            <option value="Entregado" th:selected="${edicion != null and edicion.estadoDonacion == 'Entregado'}">Entregado</option>
+                            <option value="Cancelado" th:selected="${edicion != null and edicion.estadoDonacion == 'Cancelado'}">Cancelado</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label>Fecha</label>
+                        <input type="date" name="fecha_donacion" required
+                               th:value="${edicion != null and edicion.fechaDonacion != null ? edicion.fechaDonacion : hoy}">
+                    </div>
+
+                    <div>
+                        <label>Monto (opcional)</label>
+                        <input type="number" name="monto" step="0.01" placeholder="0.00"
+                               th:value="${edicion != null and edicion.monto != null ? edicion.monto : ''}">
+                    </div>
+
+                    <div class="full">
+                        <label>Descripcion</label>
+                        <textarea name="descripcion" rows="3" required th:text="${edicion != null ? edicion.descripcion : ''}"></textarea>
+                    </div>
+
+                    <div class="full form-actions">
+                        <button type="submit" th:text="${edicion != null} ? 'Guardar Cambios' : 'Guardar Donacion'">Guardar</button>
+                        <a class="btn-cancel" th:href="@{/donaciones(q=${q},estado=${estado},situacion=${situacion},page=${currentPage},id=${selectedId})}">Cancelar</a>
+                    </div>
+                </form>
+            </article>
+
+            <article class="panel" th:if="${!showForm}">
+                <h3>Donaciones (<span th:text="${totalRows}">0</span>)</h3>
+                <p class="muted">Pagina <span th:text="${currentPage}">1</span> de <span th:text="${totalPages}">1</span></p>
+
+                <div th:if="${donaciones != null and !#lists.isEmpty(donaciones)}" th:each="d : ${donaciones}"
+                     th:class="${selectedId != null and d.idDonacion == selectedId} ? 'don-item active' : 'don-item'">
+                    <div class="don-item-head">
+                        <a class="item-link" th:href="@{/donaciones(id=${d.idDonacion},q=${q},estado=${estado},situacion=${situacion},page=${currentPage})}">
+                            <strong th:text="${'DON-' + d.idDonacion}">DON-001</strong>
+                        </a>
+                        <span class="badge badge-pendiente" th:text="${d.estadoDonacion}">Pendiente</span>
+                        <span class="badge" th:classappend="${d.activo} ? ' badge-entregado' : ' badge-cancelado'"
+                              th:text="${d.activo} ? 'Activo' : 'Inactivo'">Activo</span>
+                    </div>
+                    <p th:text="${d.descripcion}">Descripcion</p>
+                    <small>
+                        <span th:text="${d.monto != null ? ('S/ ' + d.monto) : d.tipoDonacion}">Monto</span>
+                        -
+                        <span th:text="${d.donante != null ? d.donante.nombre : 'Sin donante'}">Donante</span>
+                    </small>
+                    <div class="row-actions" th:if="${!isDonanteView}">
+                        <a class="btn-mini btn-edit" th:href="@{/donaciones(editarId=${d.idDonacion},q=${q},estado=${estado},situacion=${situacion},page=${currentPage})}">Editar</a>
+                        <form th:if="${d.activo}" method="post" th:action="@{/donaciones}" class="inline-form">
+                            <input type="hidden" name="accion" value="eliminar">
+                            <input type="hidden" name="id" th:value="${d.idDonacion}">
+                            <button class="btn-mini btn-danger" type="submit">Eliminar</button>
+                        </form>
+                        <form th:if="${!d.activo}" method="post" th:action="@{/donaciones}" class="inline-form">
+                            <input type="hidden" name="accion" value="restaurar">
+                            <input type="hidden" name="id" th:value="${d.idDonacion}">
+                            <button class="btn-mini btn-ok" type="submit">Restaurar</button>
+                        </form>
+                    </div>
+                </div>
+
+                <p th:if="${donaciones == null or #lists.isEmpty(donaciones)}" class="muted">No se encontraron donaciones.</p>
+
+                <div th:if="${totalPages != null and totalPages > 1}" class="pagination">
+                    <a class="page-link" th:if="${currentPage > 1}" th:href="@{/donaciones(page=${currentPage-1},q=${q},estado=${estado},situacion=${situacion})}">Anterior</a>
+                    <span th:each="p : ${#numbers.sequence(1,totalPages)}">
+                        <a class="page-link" th:classappend="${p == currentPage} ? ' current' : ''"
+                           th:href="@{/donaciones(page=${p},q=${q},estado=${estado},situacion=${situacion})}" th:text="${p}">1</a>
+                    </span>
+                    <a class="page-link" th:if="${currentPage < totalPages}" th:href="@{/donaciones(page=${currentPage+1},q=${q},estado=${estado},situacion=${situacion})}">Siguiente</a>
+                </div>
+            </article>
+
+            <aside class="panel">
+                <h3>Detalle de Donacion</h3>
+                <div th:if="${detalle != null}" class="detail-list">
+                    <p><strong>Codigo:</strong> <span th:text="${'DON-' + detalle.idDonacion}">DON-001</span></p>
+                    <p><strong>Descripcion:</strong> <span th:text="${detalle.descripcion}">-</span></p>
+                    <p><strong>Estado:</strong> <span th:text="${detalle.estadoDonacion}">-</span></p>
+                    <p><strong>Fecha:</strong> <span th:text="${detalle.fechaDonacion}">-</span></p>
+                    <p><strong>Tipo:</strong> <span th:text="${detalle.tipoDonacion}">-</span></p>
+                    <p><strong>Monto:</strong> <span th:text="${detalle.monto != null ? ('S/ ' + detalle.monto) : 'N/A'}">N/A</span></p>
+                    <p><strong>Donante:</strong> <span th:text="${detalle.donante != null ? detalle.donante.nombre : 'N/A'}">N/A</span></p>
+                    <p><strong>Campania:</strong> <span th:text="${detalle.campania != null ? detalle.campania.nombre : 'Sin campania'}">-</span></p>
+                    <p><strong>Situacion:</strong> <span th:text="${detalle.activo ? 'Activo' : 'Inactivo'}">-</span></p>
+                </div>
+                <p th:if="${detalle == null}" class="muted">Selecciona una donacion para ver detalles.</p>
+            </aside>
+        </section>
+    </main>
+</div>
+</body>
+</html>

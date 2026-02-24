@@ -12,29 +12,29 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 
-@WebServlet(name = "InstitucionServlet", urlPatterns = {"/instituciones"})
-public class InstitucionServlet extends HttpServlet {
+@Controller
+public class InstitucionServlet {
 
     private static final int PAGE_SIZE = 4;
 
     private final DonanteDAO donanteDAO = new DonanteDAO();
     private final PaisDAO paisDAO = new PaisDAO();
 
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    @GetMapping("/instituciones")
+    public String doGet(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         if (!isAuthenticated(request, response)) {
-            return;
+            return null;
         }
         if (isDonanteRole(request)) {
             denyForDonante(request, response);
-            return;
+            return null;
         }
 
         String q = safe(request.getParameter("q")).trim();
@@ -118,12 +118,11 @@ public class InstitucionServlet extends HttpServlet {
         request.setAttribute("pageSize", PAGE_SIZE);
         request.setAttribute("totalPages", totalPages);
 
-        String view = showForm ? "/views/instituciones/formulario.jsp" : "/views/instituciones/lista.jsp";
-        request.getRequestDispatcher(view).forward(request, response);
+        return "instituciones/index";
     }
 
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+    @PostMapping("/instituciones")
+    public void doPost(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         if (!isAuthenticated(request, response)) {
             return;

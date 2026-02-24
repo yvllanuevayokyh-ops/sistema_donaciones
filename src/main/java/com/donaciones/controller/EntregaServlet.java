@@ -13,14 +13,14 @@ import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
 
-@WebServlet(name = "EntregaServlet", urlPatterns = {"/entregas"})
-public class EntregaServlet extends HttpServlet {
+@Controller
+public class EntregaServlet {
 
     private static final int PAGE_SIZE = 6;
 
@@ -28,16 +28,15 @@ public class EntregaServlet extends HttpServlet {
     private final DonacionDAO donacionDAO = new DonacionDAO();
     private final ComunidadDAO comunidadDAO = new ComunidadDAO();
 
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    @GetMapping("/entregas")
+    public String doGet(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         if (!isAuthenticated(request, response)) {
-            return;
+            return null;
         }
         if (isDonanteRole(request) || isComunidadRole(request)) {
             request.getSession().setAttribute("mensaje", "Acceso restringido");
-            response.sendRedirect(request.getContextPath() + "/home");
-            return;
+            return "redirect:/home";
         }
 
         String q = safe(request.getParameter("q")).trim();
@@ -113,12 +112,11 @@ public class EntregaServlet extends HttpServlet {
         request.setAttribute("totalRows", totalRows);
         request.setAttribute("pageSize", PAGE_SIZE);
 
-        String view = showForm ? "/views/entregas/formulario.jsp" : "/views/entregas/lista.jsp";
-        request.getRequestDispatcher(view).forward(request, response);
+        return "entregas/index";
     }
 
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+    @PostMapping("/entregas")
+    public void doPost(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         if (!isAuthenticated(request, response)) {
             return;

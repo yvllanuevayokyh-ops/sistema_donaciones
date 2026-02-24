@@ -2,54 +2,67 @@ package com.donaciones.controller;
 
 import com.donaciones.dao.UsuarioSistemaDAO;
 import com.donaciones.model.UsuarioSistema;
-import java.io.IOException;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.Model;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 
-@WebServlet(name = "LoginServlet", urlPatterns = {"/login"})
-public class LoginServlet extends HttpServlet {
+@Controller
+public class LoginServlet {
 
     private final UsuarioSistemaDAO usuarioSistemaDAO = new UsuarioSistemaDAO();
 
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
-        request.getRequestDispatcher("/views/auth/login.jsp").forward(request, response);
+    @GetMapping("/login")
+    public String mostrarLogin(
+            @RequestParam(value = "error", required = false) String error,
+            @RequestParam(value = "email", required = false) String email,
+            HttpSession session,
+            Model model) {
+        model.addAttribute("error", error);
+        model.addAttribute("email", email == null ? "" : email);
+        consumeFlash(session, model);
+        return "auth/login";
     }
 
-    @Override
-    protected void doPost(HttpServletRequest request, HttpServletResponse response)
-            throws IOException {
-        String email = request.getParameter("email");
-        String password = request.getParameter("password");
+    @PostMapping("/login")
+    public String iniciarSesion(
+            @RequestParam(value = "email", required = false) String email,
+            @RequestParam(value = "password", required = false) String password,
+            HttpSession session) {
 
         if (email == null || email.isBlank() || password == null || password.isBlank()) {
-            response.sendRedirect(request.getContextPath() + "/login?error=1");
-            return;
+            return "redirect:/login?error=1";
         }
 
         try {
             UsuarioSistema usuario = usuarioSistemaDAO.autenticar(email.trim(), password);
             if (usuario != null) {
-                request.getSession(true).setAttribute("usuarioNombre", usuario.getNombre());
-                request.getSession().setAttribute("usuarioEmail", usuario.getUsuario());
-                request.getSession().setAttribute("usuarioRol",
+                session.setAttribute("usuarioNombre", usuario.getNombre());
+                session.setAttribute("usuarioEmail", usuario.getUsuario());
+                session.setAttribute("usuarioRol",
                         usuario.getRol() != null ? usuario.getRol().getNombre() : "");
-                request.getSession().setAttribute("mensaje", "Sesion iniciada correctamente");
-                response.sendRedirect(request.getContextPath() + "/home");
-                return;
+                session.setAttribute("mensaje", "Sesion iniciada correctamente");
+                return "redirect:/home";
             }
         } catch (Exception ex) {
             ex.printStackTrace();
-            request.getSession(true).setAttribute("mensaje", "Error de conexion con base de datos: " + ex.getMessage());
-            response.sendRedirect(request.getContextPath() + "/login?error=db");
-            return;
+            session.setAttribute("mensaje", "Error de conexion con base de datos: " + ex.getMessage());
+            return "redirect:/login?error=db";
         }
 
-        request.getSession(true).setAttribute("mensaje", "Error: credenciales invalidas");
-        response.sendRedirect(request.getContextPath() + "/login?error=1");
+        session.setAttribute("mensaje", "Error: credenciales invalidas");
+        return "redirect:/login?error=1";
+    }
+
+    private void consumeFlash(HttpSession session, Model model) {
+        Object msg = session.getAttribute("mensaje");
+        if (msg instanceof String) {
+            String value = (String) msg;
+            model.addAttribute("flashMessage", value);
+            model.addAttribute("flashError", value.startsWith("Error"));
+            session.removeAttribute("mensaje");
+        }
     }
 }

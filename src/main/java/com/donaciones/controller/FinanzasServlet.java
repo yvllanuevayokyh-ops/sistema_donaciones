@@ -8,27 +8,25 @@ import java.time.LocalTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
-import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
-import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.GetMapping;
 
-@WebServlet(name = "FinanzasServlet", urlPatterns = {"/finanzas"})
-public class FinanzasServlet extends HttpServlet {
+@Controller
+public class FinanzasServlet {
 
     private final FinanzasDAO finanzasDAO = new FinanzasDAO();
 
-    @Override
-    protected void doGet(HttpServletRequest request, HttpServletResponse response)
-            throws ServletException, IOException {
+    @GetMapping("/finanzas")
+    public String doGet(HttpServletRequest request, HttpServletResponse response)
+            throws IOException {
         if (!isAuthenticated(request, response)) {
-            return;
+            return null;
         }
         if (isDonanteRole(request) || isComunidadRole(request)) {
             request.getSession().setAttribute("mensaje", "Acceso restringido");
-            response.sendRedirect(request.getContextPath() + "/home");
-            return;
+            return "redirect:/home";
         }
 
         BigDecimal totalRecaudado = BigDecimal.ZERO;
@@ -68,7 +66,7 @@ public class FinanzasServlet extends HttpServlet {
         request.setAttribute("fechaReporte", LocalDate.now().toString());
         request.setAttribute("horaReporte", LocalTime.now().format(DateTimeFormatter.ofPattern("HH:mm:ss")));
 
-        request.getRequestDispatcher("/views/finanzas/index.jsp").forward(request, response);
+        return "finanzas/index";
     }
 
     private boolean isAuthenticated(HttpServletRequest request, HttpServletResponse response) throws IOException {

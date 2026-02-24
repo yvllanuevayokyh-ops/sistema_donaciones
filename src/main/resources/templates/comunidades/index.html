@@ -1,0 +1,124 @@
+﻿<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comunidades - Sistema Donaciones</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+<div class="dashboard-shell">
+    <aside class="sidebar">
+        <div><h2>Donaciones</h2><p>Sistema de Gestion</p></div>
+        <div class="user-box"><strong th:text="${usuarioNombre}">Usuario</strong><span th:text="${usuarioRol}">Rol</span></div>
+        <ul class="menu">
+            <th:block th:if="${isRoleComunidad}">
+                <li><a th:href="@{/home}">Dashboard</a></li>
+                <li class="active"><a th:href="@{/comunidades}">Comunidades</a></li>
+                <li><a th:href="@{/campanias}">Campanias</a></li>
+            </th:block>
+            <th:block th:if="${!isRoleComunidad}">
+                <li><a th:href="@{/home}">Dashboard</a></li>
+                <li><a th:href="@{/roles}">Roles y Permisos</a></li>
+                <li><a th:href="@{/donaciones}">Donaciones</a></li>
+                <li class="active"><a th:href="@{/comunidades}">Comunidades</a></li>
+                <li><a th:href="@{/instituciones}">Instituciones</a></li>
+                <li><a th:href="@{/voluntarios}">Voluntarios</a></li>
+                <li><a th:href="@{/campanias}">Campanias</a></li>
+                <li><a th:href="@{/entregas}">Entregas</a></li>
+                <li><a th:href="@{/finanzas}">Finanzas</a></li>
+            </th:block>
+        </ul>
+        <a class="logout" th:href="@{/logout}">Cerrar Sesion</a>
+    </aside>
+
+    <main class="main">
+        <p th:if="${flashMessage}" class="flash" th:classappend="${flashError} ? ' flash-error' : ' flash-ok'" th:text="${flashMessage}"></p>
+        <div class="top-title">
+            <div>
+                <h1>Comunidades Vulnerables</h1>
+                <p class="muted">Registro y seguimiento de beneficiarios</p>
+            </div>
+            <a th:if="${!isComunidadView}" class="btn-new" th:href="@{/comunidades(nuevo=1,q=${q},situacion=${situacion},page=${currentPage})}">+ Nueva Comunidad</a>
+        </div>
+
+        <form method="get" th:action="@{/comunidades}" class="toolbar toolbar-simple">
+            <input type="hidden" name="page" value="1">
+            <input type="text" name="q" th:value="${q}" placeholder="Buscar por nombre o ubicacion">
+            <select name="situacion">
+                <option value="Activos" th:selected="${situacion == 'Activos'}">Activos</option>
+                <option value="Inactivos" th:selected="${situacion == 'Inactivos'}">Inactivos</option>
+                <option value="Todos" th:selected="${situacion == 'Todos'}">Todos</option>
+            </select>
+            <button type="submit">Buscar</button>
+        </form>
+
+        <section class="donaciones-layout">
+            <article class="panel" th:if="${showForm}">
+                <h3 th:text="${edicion != null} ? 'Editar Comunidad' : 'Nueva Comunidad'">Nueva Comunidad</h3>
+                <form method="post" th:action="@{/comunidades}" class="form-grid">
+                    <input type="hidden" name="accion" th:value="${edicion != null ? 'editar' : 'crear'}">
+                    <input th:if="${edicion != null}" type="hidden" name="id_comunidad" th:value="${edicion.idComunidad}">
+                    <div><label>Nombre</label><input type="text" name="nombre" required th:value="${edicion != null ? edicion.nombre : ''}"></div>
+                    <div><label>Ubicacion</label><input type="text" name="ubicacion" th:value="${edicion != null ? edicion.ubicacion : ''}"></div>
+                    <div><label>Poblacion beneficiaria</label><input type="number" name="cantidad_beneficiarios" min="0" th:value="${edicion != null ? edicion.cantidadBeneficiarios : 0}"></div>
+                    <div>
+                        <label>Pais</label>
+                        <select name="id_pais" required>
+                            <option value="">Selecciona pais</option>
+                            <option th:each="p : ${paises}" th:value="${p.idPais}" th:text="${p.nombre}"
+                                    th:selected="${edicion != null and edicion.pais != null and edicion.pais.idPais == p.idPais}"></option>
+                        </select>
+                    </div>
+                    <div class="full"><label>Descripcion</label><textarea name="descripcion" rows="3" th:text="${edicion != null ? edicion.descripcion : ''}"></textarea></div>
+                    <div class="full form-actions">
+                        <button type="submit" th:text="${edicion != null ? 'Guardar Cambios' : 'Guardar Comunidad'}"></button>
+                        <a class="btn-cancel" th:href="@{/comunidades(q=${q},situacion=${situacion},page=${currentPage},id=${selectedId})}">Cancelar</a>
+                    </div>
+                </form>
+            </article>
+
+            <article class="panel" th:if="${!showForm}">
+                <h3>Comunidades (<span th:text="${totalRows}">0</span>)</h3>
+                <p class="muted">Pagina <span th:text="${currentPage}">1</span> de <span th:text="${totalPages}">1</span></p>
+                <div th:if="${comunidades != null and !#lists.isEmpty(comunidades)}" th:each="c : ${comunidades}"
+                     th:class="${selectedId != null and selectedId == c.idComunidad} ? 'com-item active' : 'com-item'">
+                    <div class="com-item-head">
+                        <a class="item-link" th:href="@{/comunidades(id=${c.idComunidad},q=${q},situacion=${situacion},page=${currentPage})}"><strong th:text="${c.nombre}"></strong></a>
+                        <span class="badge" th:classappend="${c.activo} ? ' badge-entregado' : ' badge-cancelado'" th:text="${c.activo ? 'Activo' : 'Inactivo'}"></span>
+                    </div>
+                    <p th:text="${c.ubicacion}"></p>
+                    <small th:text="${c.cantidadBeneficiarios + ' habitantes - ' + (donacionesPorComunidad != null and donacionesPorComunidad[c.idComunidad] != null ? donacionesPorComunidad[c.idComunidad] : 0) + ' donaciones'}"></small>
+                    <div class="row-actions" th:if="${!isComunidadView}">
+                        <a class="btn-mini btn-edit" th:href="@{/comunidades(editarId=${c.idComunidad},q=${q},situacion=${situacion},page=${currentPage})}">Editar</a>
+                        <form th:if="${c.activo}" method="post" th:action="@{/comunidades}" class="inline-form"><input type="hidden" name="accion" value="eliminar"><input type="hidden" name="id" th:value="${c.idComunidad}"><button class="btn-mini btn-danger" type="submit">Eliminar</button></form>
+                        <form th:if="${!c.activo}" method="post" th:action="@{/comunidades}" class="inline-form"><input type="hidden" name="accion" value="restaurar"><input type="hidden" name="id" th:value="${c.idComunidad}"><button class="btn-mini btn-ok" type="submit">Restaurar</button></form>
+                    </div>
+                </div>
+                <p th:if="${comunidades == null or #lists.isEmpty(comunidades)}" class="muted">No se encontraron comunidades.</p>
+                <div th:if="${totalPages != null and totalPages > 1}" class="pagination">
+                    <a class="page-link" th:if="${currentPage > 1}" th:href="@{/comunidades(page=${currentPage-1},q=${q},situacion=${situacion})}">Anterior</a>
+                    <span th:each="p : ${#numbers.sequence(1,totalPages)}"><a class="page-link" th:classappend="${p == currentPage} ? ' current' : ''" th:href="@{/comunidades(page=${p},q=${q},situacion=${situacion})}" th:text="${p}"></a></span>
+                    <a class="page-link" th:if="${currentPage < totalPages}" th:href="@{/comunidades(page=${currentPage+1},q=${q},situacion=${situacion})}">Siguiente</a>
+                </div>
+            </article>
+
+            <aside class="panel">
+                <h3>Detalle de Comunidad</h3>
+                <div th:if="${detalle != null}" class="detail-list">
+                    <p><strong>Nombre:</strong> <span th:text="${detalle.nombre}"></span></p>
+                    <p><strong>Ubicacion:</strong> <span th:text="${detalle.ubicacion}"></span></p>
+                    <p><strong>Poblacion:</strong> <span th:text="${detalle.cantidadBeneficiarios}"></span></p>
+                    <p><strong>Pais:</strong> <span th:text="${detalle.pais != null ? detalle.pais.nombre : ''}"></span></p>
+                    <p><strong>Descripcion:</strong> <span th:text="${detalle.descripcion}"></span></p>
+                    <p><strong>Donaciones recibidas:</strong> <span th:text="${donacionesDetalle}"></span></p>
+                    <p><strong>Situacion:</strong> <span th:text="${detalle.activo ? 'Activo' : 'Inactivo'}"></span></p>
+                </div>
+                <p th:if="${detalle == null}" class="muted">Selecciona una comunidad para ver detalles.</p>
+            </aside>
+        </section>
+    </main>
+</div>
+</body>
+</html>

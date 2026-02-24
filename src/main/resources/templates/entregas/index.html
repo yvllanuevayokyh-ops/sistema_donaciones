@@ -1,0 +1,140 @@
+﻿<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Entregas - Sistema Donaciones</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+<div class="dashboard-shell">
+    <aside class="sidebar">
+        <div><h2>Donaciones</h2><p>Sistema de Gestion</p></div>
+        <div class="user-box"><strong th:text="${usuarioNombre}"></strong><span th:text="${usuarioRol}"></span></div>
+        <ul class="menu">
+            <li><a th:href="@{/home}">Dashboard</a></li>
+            <li><a th:href="@{/roles}">Roles y Permisos</a></li>
+            <li><a th:href="@{/donaciones}">Donaciones</a></li>
+            <li><a th:href="@{/comunidades}">Comunidades</a></li>
+            <li><a th:href="@{/instituciones}">Instituciones</a></li>
+            <li><a th:href="@{/voluntarios}">Voluntarios</a></li>
+            <li><a th:href="@{/campanias}">Campanias</a></li>
+            <li class="active"><a th:href="@{/entregas}">Entregas</a></li>
+            <li><a th:href="@{/finanzas}">Finanzas</a></li>
+        </ul>
+        <a class="logout" th:href="@{/logout}">Cerrar Sesion</a>
+    </aside>
+
+    <main class="main">
+        <p th:if="${flashMessage}" class="flash" th:classappend="${flashError} ? ' flash-error' : ' flash-ok'" th:text="${flashMessage}"></p>
+        <div class="top-title">
+            <div><h1>Gestion de Entregas</h1><p class="muted">Programacion y seguimiento</p></div>
+            <a class="btn-new" th:href="@{/entregas(nuevo=1,q=${q},estado=${estado},page=${currentPage})}">+ Nueva Entrega</a>
+        </div>
+
+        <form method="get" th:action="@{/entregas}" class="toolbar toolbar-simple">
+            <input type="hidden" name="page" value="1">
+            <input type="text" name="q" th:value="${q}" placeholder="Buscar por comunidad o descripcion">
+            <select name="estado">
+                <option value="Todos" th:selected="${estado == 'Todos'}">Estado: Todos</option>
+                <option value="Programado" th:selected="${estado == 'Programado'}">Programado</option>
+                <option value="En transito" th:selected="${estado == 'En transito'}">En transito</option>
+                <option value="Entregado" th:selected="${estado == 'Entregado'}">Entregado</option>
+                <option value="Cancelado" th:selected="${estado == 'Cancelado'}">Cancelado</option>
+            </select>
+            <button type="submit">Buscar</button>
+        </form>
+
+        <section class="donaciones-layout">
+            <article class="panel" th:if="${showForm}">
+                <h3 th:text="${edicion != null ? 'Editar Entrega' : 'Nueva Entrega'}"></h3>
+                <form method="post" th:action="@{/entregas}" class="form-grid">
+                    <input type="hidden" name="accion" th:value="${edicion != null ? 'editar' : 'crear'}">
+                    <input th:if="${edicion != null}" type="hidden" name="id_entrega" th:value="${edicion.idEntrega}">
+                    <div>
+                        <label>Donacion</label>
+                        <select name="id_donacion" required>
+                            <option value="">Selecciona donacion</option>
+                            <option th:each="d : ${donaciones}" th:value="${d.idDonacion}"
+                                    th:text="${'DON-' + d.idDonacion + ' - ' + (d.donante != null ? d.donante.nombre : 'Sin donante') + ' - ' + (d.descripcion != null ? d.descripcion : '')}"
+                                    th:selected="${edicion != null and edicion.donacion != null and edicion.donacion.idDonacion == d.idDonacion}"></option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Comunidad</label>
+                        <select name="id_comunidad" required>
+                            <option value="">Selecciona comunidad</option>
+                            <option th:each="c : ${comunidades}" th:value="${c.idComunidad}" th:text="${c.nombre}"
+                                    th:selected="${edicion != null and edicion.comunidad != null and edicion.comunidad.idComunidad == c.idComunidad}"></option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Estado</label>
+                        <select name="id_estado_entrega" required>
+                            <option th:each="e : ${estados}" th:value="${e.idEstadoEntrega}" th:text="${e.descripcion}"
+                                    th:selected="${edicion != null and edicion.estadoEntrega != null and edicion.estadoEntrega.idEstadoEntrega == e.idEstadoEntrega}"></option>
+                        </select>
+                    </div>
+                    <div><label>Fecha programada</label><input type="date" name="fecha_programada" th:value="${edicion != null and edicion.fechaProgramada != null ? edicion.fechaProgramada : hoy}"></div>
+                    <div><label>Fecha entrega</label><input type="date" name="fecha_entrega" th:value="${edicion != null and edicion.fechaEntrega != null ? edicion.fechaEntrega : ''}"></div>
+                    <div class="full"><label>Observaciones</label><textarea name="observaciones" rows="3" th:text="${edicion != null ? edicion.observaciones : ''}"></textarea></div>
+                    <div class="full form-actions"><button type="submit" th:text="${edicion != null ? 'Guardar Cambios' : 'Guardar Entrega'}"></button><a class="btn-cancel" th:href="@{/entregas(q=${q},estado=${estado},page=${currentPage},id=${selectedId})}">Cancelar</a></div>
+                </form>
+            </article>
+
+            <article class="panel" th:if="${!showForm}">
+                <h3>Entregas (<span th:text="${totalRows}"></span>)</h3>
+                <p class="muted">Pagina <span th:text="${currentPage}"></span> de <span th:text="${totalPages}"></span></p>
+                <div th:if="${entregas != null and !#lists.isEmpty(entregas)}" th:each="e : ${entregas}"
+                     th:class="${selectedId != null and selectedId == e.idEntrega} ? 'ent-item active' : 'ent-item'">
+                    <div class="ent-item-head">
+                        <a class="item-link" th:href="@{/entregas(id=${e.idEntrega},q=${q},estado=${estado},page=${currentPage})}"><strong th:text="${'ENT-' + e.idEntrega}"></strong></a>
+                        <span class="badge badge-pendiente" th:text="${e.estadoEntrega != null ? e.estadoEntrega.descripcion : 'Programado'}"></span>
+                    </div>
+                    <p th:text="${e.comunidad != null ? e.comunidad.nombre : 'Sin comunidad'}"></p>
+                    <small th:text="${(e.donacion != null ? ('DON-' + e.donacion.idDonacion) : 'Sin donacion') + ' - Programada: ' + (e.fechaProgramada != null ? e.fechaProgramada : '-') + ' - Entrega: ' + (e.fechaEntrega != null ? e.fechaEntrega : '-')}"></small>
+                    <div class="row-actions">
+                        <a class="btn-mini btn-edit" th:href="@{/entregas(editarId=${e.idEntrega},q=${q},estado=${estado},page=${currentPage})}">Editar</a>
+                        <form th:if="${e.estadoEntrega != null and e.estadoEntrega.descripcion != 'Entregado'}" method="post" th:action="@{/entregas}" class="inline-form">
+                            <input type="hidden" name="accion" value="cambiar_estado"><input type="hidden" name="id" th:value="${e.idEntrega}"><input type="hidden" name="id_estado_entrega" value="3"><input type="hidden" name="fecha_entrega" th:value="${hoy}">
+                            <button class="btn-mini btn-ok" type="submit">Marcar Entregado</button>
+                        </form>
+                    </div>
+                </div>
+                <p th:if="${entregas == null or #lists.isEmpty(entregas)}" class="muted">No se encontraron entregas.</p>
+                <div th:if="${totalPages != null and totalPages > 1}" class="pagination">
+                    <a class="page-link" th:if="${currentPage > 1}" th:href="@{/entregas(page=${currentPage-1},q=${q},estado=${estado})}">Anterior</a>
+                    <span th:each="p : ${#numbers.sequence(1,totalPages)}"><a class="page-link" th:classappend="${p == currentPage} ? ' current' : ''" th:href="@{/entregas(page=${p},q=${q},estado=${estado})}" th:text="${p}"></a></span>
+                    <a class="page-link" th:if="${currentPage < totalPages}" th:href="@{/entregas(page=${currentPage+1},q=${q},estado=${estado})}">Siguiente</a>
+                </div>
+            </article>
+
+            <aside class="panel">
+                <h3>Detalle de Entrega</h3>
+                <div th:if="${detalle != null}" class="detail-list">
+                    <p><strong>Codigo:</strong> <span th:text="${'ENT-' + detalle.idEntrega}"></span></p>
+                    <p><strong>Donacion:</strong> <span th:text="${detalle.donacion != null ? ('DON-' + detalle.donacion.idDonacion) : 'Sin donacion'}"></span></p>
+                    <p><strong>Descripcion:</strong> <span th:text="${detalle.donacion != null ? detalle.donacion.descripcion : ''}"></span></p>
+                    <p><strong>Tipo:</strong> <span th:text="${detalle.donacion != null ? detalle.donacion.tipoDonacion : ''}"></span></p>
+                    <p><strong>Monto donado:</strong> <span th:text="${detalle.donacion != null and detalle.donacion.monto != null ? ('S/ ' + detalle.donacion.monto) : 'No monetaria'}"></span></p>
+                    <p><strong>Comunidad:</strong> <span th:text="${detalle.comunidad != null ? detalle.comunidad.nombre : ''}"></span></p>
+                    <p><strong>Estado:</strong> <span th:text="${detalle.estadoEntrega != null ? detalle.estadoEntrega.descripcion : ''}"></span></p>
+                    <p><strong>Fecha programada:</strong> <span th:text="${detalle.fechaProgramada != null ? detalle.fechaProgramada : '-'}"></span></p>
+                    <p><strong>Fecha entrega:</strong> <span th:text="${detalle.fechaEntrega != null ? detalle.fechaEntrega : '-'}"></span></p>
+                </div>
+
+                <form th:if="${detalle != null}" method="post" th:action="@{/entregas}" class="form-grid form-panel">
+                    <input type="hidden" name="accion" value="cambiar_estado"><input type="hidden" name="id" th:value="${detalle.idEntrega}">
+                    <div><label>Actualizar estado</label><select name="id_estado_entrega" required><option th:each="e : ${estados}" th:value="${e.idEstadoEntrega}" th:text="${e.descripcion}" th:selected="${detalle.estadoEntrega != null and detalle.estadoEntrega.idEstadoEntrega == e.idEstadoEntrega}"></option></select></div>
+                    <div><label>Fecha entrega</label><input type="date" name="fecha_entrega" th:value="${detalle.fechaEntrega != null ? detalle.fechaEntrega : hoy}"></div>
+                    <div class="full"><label>Observaciones</label><textarea name="observaciones" rows="3" th:text="${detalle.observaciones}"></textarea></div>
+                    <div class="full form-actions"><button type="submit">Guardar Estado</button></div>
+                </form>
+                <p th:if="${detalle == null}" class="muted">Selecciona una entrega para ver detalles.</p>
+            </aside>
+        </section>
+    </main>
+</div>
+</body>
+</html>

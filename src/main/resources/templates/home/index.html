@@ -1,0 +1,231 @@
+﻿<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inicio - Sistema Donaciones</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+</head>
+<body>
+<div class="dashboard-shell">
+    <aside class="sidebar">
+        <div>
+            <h2>Donaciones</h2>
+            <p>Sistema de Gestion</p>
+        </div>
+
+        <div class="user-box">
+            <strong th:text="${usuarioNombre}">Usuario</strong>
+            <span th:text="${usuarioRol}">Rol</span>
+        </div>
+
+        <ul class="menu">
+            <th:block th:if="${isDonanteView}">
+                <li class="active"><a th:href="@{/home}">Dashboard</a></li>
+                <li><a th:href="@{/donaciones}">Mis Donaciones</a></li>
+                <li><a th:href="@{/campanias}">Campanias</a></li>
+            </th:block>
+
+            <th:block th:if="${!isDonanteView and isComunidadView}">
+                <li class="active"><a th:href="@{/home}">Dashboard</a></li>
+                <li><a th:href="@{/comunidades}">Comunidades</a></li>
+                <li><a th:href="@{/campanias}">Campanias</a></li>
+            </th:block>
+
+            <th:block th:if="${!isDonanteView and !isComunidadView}">
+                <li class="active"><a th:href="@{/home}">Dashboard</a></li>
+                <li><a th:href="@{/roles}">Roles y Permisos</a></li>
+                <li><a th:href="@{/donaciones}">Donaciones</a></li>
+                <li><a th:href="@{/comunidades}">Comunidades</a></li>
+                <li><a th:href="@{/instituciones}">Instituciones</a></li>
+                <li><a th:href="@{/voluntarios}">Voluntarios</a></li>
+                <li><a th:href="@{/campanias}">Campanias</a></li>
+                <li><a th:href="@{/entregas}">Entregas</a></li>
+                <li><a th:href="@{/finanzas}">Finanzas</a></li>
+                <li><a href="#">Reportes</a></li>
+            </th:block>
+        </ul>
+
+        <a class="logout" th:href="@{/logout}">Cerrar Sesion</a>
+    </aside>
+
+    <main class="main">
+        <p th:if="${flashMessage}" class="flash" th:classappend="${flashError} ? ' flash-error' : ' flash-ok'" th:text="${flashMessage}"></p>
+
+        <h1>Buenas noches, <span th:text="${usuarioNombre}">Usuario</span></h1>
+        <p class="muted">Fecha: <span th:text="${fechaActual}">2026-01-01</span></p>
+
+        <th:block th:if="${isDonanteView}">
+            <section class="stats">
+                <article class="stat">
+                    <h3>Mis Donaciones</h3>
+                    <strong th:text="${misDonaciones}">0</strong>
+                    <small>Donaciones activas registradas</small>
+                </article>
+                <article class="stat">
+                    <h3>Pendientes</h3>
+                    <strong th:text="${misDonacionesPendientes}">0</strong>
+                    <small>Estado pendiente o en transito</small>
+                </article>
+                <article class="stat">
+                    <h3>Monto Donado</h3>
+                    <strong>S/ <span th:text="${montoDonado}">0.00</span></strong>
+                    <small>Aportes monetarios acumulados</small>
+                </article>
+                <article class="stat">
+                    <h3>Campanias Activas</h3>
+                    <strong th:text="${totalCampaniasActivas}">0</strong>
+                    <small>Disponibles para donar</small>
+                </article>
+            </section>
+
+            <section class="content-grid">
+                <article class="panel">
+                    <h3>Mis Ultimas Donaciones</h3>
+                    <p class="muted">Resumen de tus aportes recientes</p>
+
+                    <p class="muted" th:if="${!perfilDonanteVinculado}">
+                        No se encontro un perfil donante vinculado a tu cuenta. Solicita al administrador vincular tu email.
+                    </p>
+
+                    <th:block th:if="${perfilDonanteVinculado and donacionesRecientes != null and !#lists.isEmpty(donacionesRecientes)}">
+                        <div class="donacion-item" th:each="fila : ${donacionesRecientes}">
+                            <div>
+                                <strong th:text="${fila[0]}">Titulo</strong>
+                                <span><span th:text="${fila[1]}">S/ 0.00</span> - <span th:text="${fila[4]}">Campania</span></span>
+                            </div>
+                            <div class="item-right">
+                                <strong th:text="${fila[2]}">Estado</strong>
+                                <span th:text="${fila[3]}">Fecha</span>
+                            </div>
+                        </div>
+                    </th:block>
+
+                    <p class="muted" th:if="${perfilDonanteVinculado and (donacionesRecientes == null or #lists.isEmpty(donacionesRecientes))}">
+                        Aun no tienes donaciones registradas.
+                    </p>
+                </article>
+
+                <article class="panel quick">
+                    <h3>Accesos Rapidos</h3>
+                    <div class="metric">
+                        <span>Registrar una nueva donacion</span>
+                        <strong><a th:href="@{/donaciones(nuevo=1)}">Ir a Donaciones</a></strong>
+                    </div>
+                    <div class="metric">
+                        <span>Revisar campanias disponibles</span>
+                        <strong><a th:href="@{/campanias}">Ver Campanias</a></strong>
+                    </div>
+                </article>
+            </section>
+        </th:block>
+
+        <th:block th:if="${!isDonanteView and isComunidadView}">
+            <section class="stats">
+                <article class="stat">
+                    <h3>Comunidades</h3>
+                    <strong th:text="${totalComunidades}">0</strong>
+                    <small>Registros disponibles</small>
+                </article>
+                <article class="stat">
+                    <h3>Beneficiarios</h3>
+                    <strong th:text="${totalBeneficiarios}">0</strong>
+                    <small>Poblacion estimada</small>
+                </article>
+                <article class="stat">
+                    <h3>Campanias Activas</h3>
+                    <strong th:text="${totalCampaniasActivas}">0</strong>
+                    <small>Seguimiento de apoyo</small>
+                </article>
+            </section>
+
+            <section class="content-grid">
+                <article class="panel">
+                    <h3>Donaciones Recientes</h3>
+                    <p class="muted">Referencia general del sistema</p>
+                    <th:block th:if="${donacionesRecientes != null and !#lists.isEmpty(donacionesRecientes)}">
+                        <div class="donacion-item" th:each="fila : ${donacionesRecientes}">
+                            <div>
+                                <strong th:text="${fila[0]}">Titulo</strong>
+                                <span><span th:text="${fila[1]}">S/ 0.00</span> - <span th:text="${fila[4]}">Campania</span></span>
+                            </div>
+                            <div class="item-right">
+                                <strong th:text="${fila[2]}">Estado</strong>
+                                <span th:text="${fila[3]}">Fecha</span>
+                            </div>
+                        </div>
+                    </th:block>
+                    <p class="muted" th:if="${donacionesRecientes == null or #lists.isEmpty(donacionesRecientes)}">
+                        No hay donaciones registradas.
+                    </p>
+                </article>
+            </section>
+        </th:block>
+
+        <th:block th:if="${!isDonanteView and !isComunidadView}">
+            <section class="stats">
+                <article class="stat">
+                    <h3>Donaciones Activas</h3>
+                    <strong th:text="${totalDonaciones}">0</strong>
+                    <small>Total registradas</small>
+                </article>
+                <article class="stat">
+                    <h3>Comunidades</h3>
+                    <strong th:text="${totalComunidades}">0</strong>
+                    <small><span th:text="${totalBeneficiarios}">0</span> beneficiarios</small>
+                </article>
+                <article class="stat">
+                    <h3>Instituciones Donantes</h3>
+                    <strong th:text="${totalInstituciones}">0</strong>
+                    <small>Donantes institucionales</small>
+                </article>
+                <article class="stat">
+                    <h3>Campanias Activas</h3>
+                    <strong th:text="${totalCampaniasActivas}">0</strong>
+                    <small>Recaudacion en curso</small>
+                </article>
+            </section>
+
+            <section class="content-grid">
+                <article class="panel">
+                    <h3>Donaciones Recientes</h3>
+                    <p class="muted">Ultimas donaciones registradas</p>
+                    <th:block th:if="${donacionesRecientes != null and !#lists.isEmpty(donacionesRecientes)}">
+                        <div class="donacion-item" th:each="fila : ${donacionesRecientes}">
+                            <div>
+                                <strong th:text="${fila[0]}">Titulo</strong>
+                                <span><span th:text="${fila[1]}">S/ 0.00</span> - <span th:text="${fila[4]}">Campania</span></span>
+                            </div>
+                            <div class="item-right">
+                                <strong th:text="${fila[2]}">Estado</strong>
+                                <span th:text="${fila[3]}">Fecha</span>
+                            </div>
+                        </div>
+                    </th:block>
+                    <p class="muted" th:if="${donacionesRecientes == null or #lists.isEmpty(donacionesRecientes)}">
+                        No hay donaciones registradas.
+                    </p>
+                </article>
+
+                <article class="panel quick">
+                    <h3>Resumen Rapido</h3>
+                    <div class="metric">
+                        <span>Voluntarios Activos</span>
+                        <strong th:text="${voluntariosActivos}">0</strong>
+                    </div>
+                    <div class="metric">
+                        <span>Tasa de Entregas</span>
+                        <strong><span th:text="${tasaEntregas}">0</span>%</strong>
+                    </div>
+                    <div class="metric">
+                        <span>Campanias Completadas</span>
+                        <strong><span th:text="${campaniasCompletadas}">0</span> / <span th:text="${totalCampanias}">0</span></strong>
+                    </div>
+                </article>
+            </section>
+        </th:block>
+    </main>
+</div>
+</body>
+</html>
