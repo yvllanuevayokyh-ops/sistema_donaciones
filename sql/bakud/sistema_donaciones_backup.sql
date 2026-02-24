@@ -1,5 +1,5 @@
 ﻿-- Backup funcional consolidado
--- Generado: 2026-02-23 21:36:55
+-- Generado: 2026-02-23 21:50:21
 -- Base: sistema_donaciones
 USE sistema_donaciones;
 
@@ -1388,3 +1388,149 @@ SELECT d.id_donacion,
 FROM donacion d
 WHERE d.descripcion = 'Cobertura de compras para suplemento nutricional trimestral'
   AND NOT EXISTS (SELECT 1 FROM entrega_donacion e WHERE e.observaciones = 'Distribucion realizada en centro comunal con apoyo de voluntarios');
+
+-- ------------------------------
+-- Lote adicional (20 registros realistas)
+-- ------------------------------
+
+-- Donantes (+4)
+INSERT INTO donante (nombre, email, telefono, direccion, tipo_donante, id_pais, fecha_registro, activo)
+SELECT 'Cooperativa Agrovida Junin', 'alianzas@agrovida.pe', '+51 964110845',
+       'Av. Real 880, Huancayo', 'Institucion',
+       (SELECT id_pais FROM pais WHERE UPPER(nombre) = 'PERU' LIMIT 1), '2026-02-19', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM donante WHERE email = 'alianzas@agrovida.pe');
+
+INSERT INTO donante (nombre, email, telefono, direccion, tipo_donante, id_pais, fecha_registro, activo)
+SELECT 'Fundacion Manos del Sur', 'contacto@manosdelsur.org', '+56 931440225',
+       'Av. Matta 1420, Santiago', 'Fundacion',
+       (SELECT id_pais FROM pais WHERE UPPER(nombre) = 'CHILE' LIMIT 1), '2026-02-20', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM donante WHERE email = 'contacto@manosdelsur.org');
+
+INSERT INTO donante (nombre, email, telefono, direccion, tipo_donante, id_pais, fecha_registro, activo)
+SELECT 'Emilia Navarro', 'emilia.navarro@email.com', '+593 992331480',
+       'Cdla. Kennedy Norte, Guayaquil', 'Persona Natural',
+       (SELECT id_pais FROM pais WHERE UPPER(nombre) = 'ECUADOR' LIMIT 1), '2026-02-21', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM donante WHERE email = 'emilia.navarro@email.com');
+
+INSERT INTO donante (nombre, email, telefono, direccion, tipo_donante, id_pais, fecha_registro, activo)
+SELECT 'Carlos Mena', 'carlos.mena@email.com', '+51 982113406',
+       'Jr. Pizarro 590, Trujillo', 'Persona Natural',
+       (SELECT id_pais FROM pais WHERE UPPER(nombre) = 'PERU' LIMIT 1), '2026-02-22', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM donante WHERE email = 'carlos.mena@email.com');
+
+-- Campanias (+3)
+INSERT INTO campania (nombre, descripcion, fecha_inicio, fecha_fin, estado, monto_objetivo, activo)
+SELECT 'Recuperacion de Viviendas Altoandinas',
+       'Mejora de techos termicos y reparacion estructural para familias vulnerables en zonas de friaje.',
+       '2026-02-01', '2026-09-30', 'Activa', 135000.00, 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM campania WHERE UPPER(nombre) = 'RECUPERACION DE VIVIENDAS ALTOANDINAS');
+
+INSERT INTO campania (nombre, descripcion, fecha_inicio, fecha_fin, estado, monto_objetivo, activo)
+SELECT 'Conectividad Escolar Rural',
+       'Dotacion de routers, paneles solares y puntos de acceso para escuelas comunitarias.',
+       '2026-02-05', '2026-11-15', 'Activa', 98000.00, 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM campania WHERE UPPER(nombre) = 'CONECTIVIDAD ESCOLAR RURAL');
+
+INSERT INTO campania (nombre, descripcion, fecha_inicio, fecha_fin, estado, monto_objetivo, activo)
+SELECT 'Banco Comunitario de Alimentos',
+       'Fortalecimiento de comedores populares con abastecimiento mensual y cadena de frio basica.',
+       '2026-02-10', '2026-12-20', 'Activa', 87000.00, 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM campania WHERE UPPER(nombre) = 'BANCO COMUNITARIO DE ALIMENTOS');
+
+-- Comunidades (+4)
+INSERT INTO comunidad_vulnerable (nombre, ubicacion, descripcion, cantidad_beneficiarios, id_pais, activo)
+SELECT 'Centro Poblado Santa Rosa', 'Huancavelica, Peru',
+       'Comunidad de altura con brechas de vivienda segura y servicios de salud.', 360,
+       (SELECT id_pais FROM pais WHERE UPPER(nombre) = 'PERU' LIMIT 1), 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM comunidad_vulnerable WHERE UPPER(nombre) = 'CENTRO POBLADO SANTA ROSA');
+
+INSERT INTO comunidad_vulnerable (nombre, ubicacion, descripcion, cantidad_beneficiarios, id_pais, activo)
+SELECT 'Comunidad El Porvenir', 'La Paz, Bolivia',
+       'Zona periurbana con alta demanda de apoyo alimentario y educacion inicial.', 270,
+       (SELECT id_pais FROM pais WHERE UPPER(nombre) = 'BOLIVIA' LIMIT 1), 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM comunidad_vulnerable WHERE UPPER(nombre) = 'COMUNIDAD EL PORVENIR');
+
+INSERT INTO comunidad_vulnerable (nombre, ubicacion, descripcion, cantidad_beneficiarios, id_pais, activo)
+SELECT 'Sector Nueva Luz', 'Quito, Ecuador',
+       'Sector con necesidades de conectividad educativa y programas de nutricion infantil.', 430,
+       (SELECT id_pais FROM pais WHERE UPPER(nombre) = 'ECUADOR' LIMIT 1), 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM comunidad_vulnerable WHERE UPPER(nombre) = 'SECTOR NUEVA LUZ');
+
+INSERT INTO comunidad_vulnerable (nombre, ubicacion, descripcion, cantidad_beneficiarios, id_pais, activo)
+SELECT 'Barrio Los Pinos Solidario', 'Arequipa, Peru',
+       'Asentamiento con deficit de infraestructura basica y gestion de riesgos climaticos.', 390,
+       (SELECT id_pais FROM pais WHERE UPPER(nombre) = 'PERU' LIMIT 1), 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM comunidad_vulnerable WHERE UPPER(nombre) = 'BARRIO LOS PINOS SOLIDARIO');
+
+-- Voluntarios (+3)
+INSERT INTO voluntario (nombre, email, telefono, fecha_ingreso, estado)
+SELECT 'Andrea Poma', 'andrea.poma@voluntarios.org', '+51 974112850', '2026-02-19', 1
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM voluntario WHERE email = 'andrea.poma@voluntarios.org');
+
+INSERT INTO voluntario (nombre, email, telefono, fecha_ingreso, estado)
+SELECT 'Renato Silva', 'renato.silva@voluntarios.org', '+51 986330194', '2026-02-20', 1
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM voluntario WHERE email = 'renato.silva@voluntarios.org');
+
+INSERT INTO voluntario (nombre, email, telefono, fecha_ingreso, estado)
+SELECT 'Sofia Calderon', 'sofia.calderon@voluntarios.org', '+51 965008421', '2026-02-22', 1
+FROM DUAL WHERE NOT EXISTS (SELECT 1 FROM voluntario WHERE email = 'sofia.calderon@voluntarios.org');
+
+-- Donaciones (+6)
+INSERT INTO donacion (id_donante, id_campania, tipo_donacion, estado_donacion, fecha_donacion, monto, descripcion, activo)
+SELECT (SELECT id_donante FROM donante WHERE email = 'alianzas@agrovida.pe' LIMIT 1),
+       (SELECT id_campania FROM campania WHERE UPPER(nombre) = 'RECUPERACION DE VIVIENDAS ALTOANDINAS' LIMIT 1),
+       'Monetaria', 'Entregado', '2026-02-20', 9800.00,
+       'Aporte para compra de planchas termicas y kits de reparacion de viviendas', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM donacion WHERE descripcion = 'Aporte para compra de planchas termicas y kits de reparacion de viviendas');
+
+INSERT INTO donacion (id_donante, id_campania, tipo_donacion, estado_donacion, fecha_donacion, monto, descripcion, activo)
+SELECT (SELECT id_donante FROM donante WHERE email = 'contacto@manosdelsur.org' LIMIT 1),
+       (SELECT id_campania FROM campania WHERE UPPER(nombre) = 'BANCO COMUNITARIO DE ALIMENTOS' LIMIT 1),
+       'Recurso', 'En transito', '2026-02-21', NULL,
+       'Entrega de conservadoras y menaje para tres comedores comunitarios', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM donacion WHERE descripcion = 'Entrega de conservadoras y menaje para tres comedores comunitarios');
+
+INSERT INTO donacion (id_donante, id_campania, tipo_donacion, estado_donacion, fecha_donacion, monto, descripcion, activo)
+SELECT (SELECT id_donante FROM donante WHERE email = 'emilia.navarro@email.com' LIMIT 1),
+       (SELECT id_campania FROM campania WHERE UPPER(nombre) = 'CONECTIVIDAD ESCOLAR RURAL' LIMIT 1),
+       'Monetaria', 'Pendiente', '2026-02-22', 1450.00,
+       'Aporte familiar para compra de modem y baterias de respaldo escolar', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM donacion WHERE descripcion = 'Aporte familiar para compra de modem y baterias de respaldo escolar');
+
+INSERT INTO donacion (id_donante, id_campania, tipo_donacion, estado_donacion, fecha_donacion, monto, descripcion, activo)
+SELECT (SELECT id_donante FROM donante WHERE email = 'carlos.mena@email.com' LIMIT 1),
+       NULL,
+       'Monetaria', 'Entregado', '2026-02-22', 650.00,
+       'Apoyo para transporte de brigada y traslado de materiales de entrega', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM donacion WHERE descripcion = 'Apoyo para transporte de brigada y traslado de materiales de entrega');
+
+INSERT INTO donacion (id_donante, id_campania, tipo_donacion, estado_donacion, fecha_donacion, monto, descripcion, activo)
+SELECT (SELECT id_donante FROM donante WHERE email = 'rse@grupoandino.com' LIMIT 1),
+       (SELECT id_campania FROM campania WHERE UPPER(nombre) = 'RECUPERACION DE VIVIENDAS ALTOANDINAS' LIMIT 1),
+       'Monetaria', 'En transito', '2026-02-23', 11200.00,
+       'Fondo corporativo para rehabilitar techos y muros en zona altoandina', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM donacion WHERE descripcion = 'Fondo corporativo para rehabilitar techos y muros en zona altoandina');
+
+INSERT INTO donacion (id_donante, id_campania, tipo_donacion, estado_donacion, fecha_donacion, monto, descripcion, activo)
+SELECT (SELECT id_donante FROM donante WHERE email = 'camila.rojas@email.com' LIMIT 1),
+       (SELECT id_campania FROM campania WHERE UPPER(nombre) = 'BANCO COMUNITARIO DE ALIMENTOS' LIMIT 1),
+       'Monetaria', 'Pendiente', '2026-02-23', 2300.00,
+       'Contribucion para abastecimiento mensual de alimentos de primera necesidad', 1
+FROM DUAL
+WHERE NOT EXISTS (SELECT 1 FROM donacion WHERE descripcion = 'Contribucion para abastecimiento mensual de alimentos de primera necesidad');
