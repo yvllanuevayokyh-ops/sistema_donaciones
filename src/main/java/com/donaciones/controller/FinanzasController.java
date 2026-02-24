@@ -34,8 +34,9 @@ public class FinanzasController {
         BigDecimal saldoDisponible = BigDecimal.ZERO;
         int totalDonaciones = 0;
         int totalEntregas = 0;
-        String ultimaDonacion = "-";
-        String ultimaEntrega = "-";
+        java.util.Date fechaReporteDateTime = new java.util.Date();
+        String ultimaDonacion = formatDateTime(fechaReporteDateTime);
+        String ultimaEntrega = formatDateTime(fechaReporteDateTime);
         List<Object[]> porCampania = new ArrayList<Object[]>();
         List<Object[]> porComunidad = new ArrayList<Object[]>();
 
@@ -69,6 +70,7 @@ public class FinanzasController {
         request.setAttribute("ultimaEntrega", ultimaEntrega);
         request.setAttribute("porCampania", porCampania);
         request.setAttribute("porComunidad", porComunidad);
+        request.setAttribute("fechaReporteDateTime", fechaReporteDateTime);
         request.setAttribute("ordenCampania", "Mayor recaudado");
         request.setAttribute("ordenComunidad", "Mayor monto recibido");
         request.setAttribute("fechaReporte", LocalDate.now().toString());
@@ -134,7 +136,7 @@ public class FinanzasController {
 
     private String formatDateTime(Object value) {
         if (value == null) {
-            return "-";
+            return "";
         }
         try {
             java.util.Date date = (java.util.Date) value;

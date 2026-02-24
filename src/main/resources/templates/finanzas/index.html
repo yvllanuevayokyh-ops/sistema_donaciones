@@ -39,8 +39,8 @@
         </div>
 
         <section class="stats finance-stats">
-            <article class="stat"><h3>Total Recaudado</h3><strong th:text="${'S/ ' + totalRecaudado}">S/0</strong><small th:text="${'Ultima donacion: ' + ultimaDonacion}">Ultima donacion: -</small></article>
-            <article class="stat"><h3>Total Entregado</h3><strong th:text="${'S/ ' + totalEntregado}">S/0</strong><small th:text="${'Ultima entrega: ' + ultimaEntrega}">Ultima entrega: -</small></article>
+            <article class="stat"><h3>Total Recaudado</h3><strong th:text="${'S/ ' + totalRecaudado}">S/0</strong><small th:text="${'Ultima donacion: ' + ultimaDonacion}">Ultima donacion: sin registro</small></article>
+            <article class="stat"><h3>Total Entregado</h3><strong th:text="${'S/ ' + totalEntregado}">S/0</strong><small th:text="${'Ultima entrega: ' + ultimaEntrega}">Ultima entrega: sin registro</small></article>
             <article class="stat"><h3>Saldo Disponible</h3><strong th:text="${'S/ ' + saldoDisponible}">S/0</strong><small><span th:text="${totalDonaciones}"></span> donaciones - <span th:text="${totalEntregas}"></span> entregas</small></article>
         </section>
 
@@ -70,8 +70,8 @@
                             <td th:text="${'S/ ' + row[3]}"></td>
                             <td th:text="${'S/ ' + row[4]}"></td>
                             <td th:text="${row[5]}"></td>
-                            <td th:text="${row[6] != null ? #dates.format(row[6], 'dd/MM/yyyy HH:mm') : '-'}"></td>
-                            <td th:text="${row[7] != null ? #dates.format(row[7], 'dd/MM/yyyy HH:mm') : '-'}"></td>
+                            <td th:text="${row[6] != null ? #dates.format(row[6], 'dd/MM/yyyy HH:mm') : #dates.format(fechaReporteDateTime, 'dd/MM/yyyy HH:mm')}"></td>
+                            <td th:text="${row[7] != null ? #dates.format(row[7], 'dd/MM/yyyy HH:mm') : #dates.format(fechaReporteDateTime, 'dd/MM/yyyy HH:mm')}"></td>
                         </tr>
                         </tbody>
                     </table>
@@ -103,8 +103,8 @@
                             <td th:text="${row[3]}"></td>
                             <td th:text="${row[4]}"></td>
                             <td th:text="${'S/ ' + row[5]}"></td>
-                            <td th:text="${row[6] != null ? #dates.format(row[6], 'dd/MM/yyyy HH:mm') : '-'}"></td>
-                            <td th:text="${row[7] != null ? #dates.format(row[7], 'dd/MM/yyyy HH:mm') : '-'}"></td>
+                            <td th:text="${row[6] != null ? #dates.format(row[6], 'dd/MM/yyyy HH:mm') : #dates.format(fechaReporteDateTime, 'dd/MM/yyyy HH:mm')}"></td>
+                            <td th:text="${row[7] != null ? #dates.format(row[7], 'dd/MM/yyyy HH:mm') : #dates.format(fechaReporteDateTime, 'dd/MM/yyyy HH:mm')}"></td>
                         </tr>
                         </tbody>
                     </table>
