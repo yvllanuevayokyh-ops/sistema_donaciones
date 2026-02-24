@@ -23,34 +23,82 @@ public class DonacionDAO {
             int page = Math.max(1, pagina);
             int size = Math.max(1, porPagina);
             int offset = (page - 1) * size;
+            String normalizedQ = safe(q).trim();
+            String normalizedEstado = safe(estado).trim();
+            String idLike = normalizedQ.toUpperCase().replace("DON-", "").replace(" ", "");
+            String textLike = "%" + normalizedQ.toUpperCase() + "%";
 
-            StoredProcedureQuery spContar = em.createStoredProcedureQuery("sp_donacion_contar");
-            spContar.registerStoredProcedureParameter("p_q", String.class, ParameterMode.IN);
-            spContar.registerStoredProcedureParameter("p_estado", String.class, ParameterMode.IN);
-            spContar.registerStoredProcedureParameter("p_activo", Integer.class, ParameterMode.IN);
-            enableNullParam(spContar, "p_activo");
-            spContar.setParameter("p_q", safe(q));
-            spContar.setParameter("p_estado", safe(estado));
-            spContar.setParameter("p_activo", activo);
-            spContar.execute();
-            int totalRegistros = toInt(spContar.getSingleResult());
+            StringBuilder sqlCount = new StringBuilder(
+                    "SELECT COUNT(*) FROM donacion d " +
+                            "INNER JOIN donante dn ON dn.id_donante = d.id_donante WHERE 1=1"
+            );
+            List<Object> countParams = new ArrayList<Object>();
 
-            StoredProcedureQuery spListar = em.createStoredProcedureQuery("sp_donacion_listar", Donacion.class);
-            spListar.registerStoredProcedureParameter("p_q", String.class, ParameterMode.IN);
-            spListar.registerStoredProcedureParameter("p_estado", String.class, ParameterMode.IN);
-            spListar.registerStoredProcedureParameter("p_activo", Integer.class, ParameterMode.IN);
-            spListar.registerStoredProcedureParameter("p_offset", Integer.class, ParameterMode.IN);
-            spListar.registerStoredProcedureParameter("p_limit", Integer.class, ParameterMode.IN);
-            enableNullParam(spListar, "p_activo");
-            spListar.setParameter("p_q", safe(q));
-            spListar.setParameter("p_estado", safe(estado));
-            spListar.setParameter("p_activo", activo);
-            spListar.setParameter("p_offset", offset);
-            spListar.setParameter("p_limit", size);
-            spListar.execute();
+            if (!normalizedQ.isEmpty()) {
+                sqlCount.append(" AND (CAST(d.id_donacion AS CHAR) LIKE ? ")
+                        .append("OR CONCAT('DON-', LPAD(d.id_donacion, 3, '0')) LIKE ? ")
+                        .append("OR UPPER(COALESCE(d.descripcion, '')) LIKE ? ")
+                        .append("OR UPPER(COALESCE(dn.nombre, '')) LIKE ? ")
+                        .append("OR UPPER(COALESCE(dn.email, '')) LIKE ?)");
+                countParams.add("%" + idLike + "%");
+                countParams.add(textLike);
+                countParams.add(textLike);
+                countParams.add(textLike);
+                countParams.add(textLike);
+            }
+
+            if (!normalizedEstado.isEmpty() && !"TODAS".equalsIgnoreCase(normalizedEstado)) {
+                sqlCount.append(" AND UPPER(d.estado_donacion) = ?");
+                countParams.add(normalizedEstado.toUpperCase());
+            }
+
+            if (activo != null) {
+                sqlCount.append(" AND d.activo = ?");
+                countParams.add(activo);
+            }
+
+            Query qCount = em.createNativeQuery(sqlCount.toString());
+            setPositionalParams(qCount, countParams);
+            int totalRegistros = toInt(qCount.getSingleResult());
+
+            StringBuilder sqlList = new StringBuilder(
+                    "SELECT d.* FROM donacion d " +
+                            "INNER JOIN donante dn ON dn.id_donante = d.id_donante WHERE 1=1"
+            );
+            List<Object> listParams = new ArrayList<Object>();
+
+            if (!normalizedQ.isEmpty()) {
+                sqlList.append(" AND (CAST(d.id_donacion AS CHAR) LIKE ? ")
+                        .append("OR CONCAT('DON-', LPAD(d.id_donacion, 3, '0')) LIKE ? ")
+                        .append("OR UPPER(COALESCE(d.descripcion, '')) LIKE ? ")
+                        .append("OR UPPER(COALESCE(dn.nombre, '')) LIKE ? ")
+                        .append("OR UPPER(COALESCE(dn.email, '')) LIKE ?)");
+                listParams.add("%" + idLike + "%");
+                listParams.add(textLike);
+                listParams.add(textLike);
+                listParams.add(textLike);
+                listParams.add(textLike);
+            }
+
+            if (!normalizedEstado.isEmpty() && !"TODAS".equalsIgnoreCase(normalizedEstado)) {
+                sqlList.append(" AND UPPER(d.estado_donacion) = ?");
+                listParams.add(normalizedEstado.toUpperCase());
+            }
+
+            if (activo != null) {
+                sqlList.append(" AND d.activo = ?");
+                listParams.add(activo);
+            }
+
+            sqlList.append(" ORDER BY d.fecha_donacion DESC, d.id_donacion DESC LIMIT ?, ?");
+            listParams.add(offset);
+            listParams.add(size);
+
+            Query qList = em.createNativeQuery(sqlList.toString(), Donacion.class);
+            setPositionalParams(qList, listParams);
 
             @SuppressWarnings("unchecked")
-            List<Donacion> rows = spListar.getResultList();
+            List<Donacion> rows = qList.getResultList();
 
             resultado.setDatos(rows);
             resultado.setTotalRegistros(totalRegistros);

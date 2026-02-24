@@ -9,6 +9,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 import javax.persistence.ParameterMode;
 import javax.persistence.StoredProcedureQuery;
+import org.hibernate.procedure.ProcedureCall;
 
 public class ComunidadDAO {
 
@@ -23,6 +24,7 @@ public class ComunidadDAO {
             StoredProcedureQuery spContar = em.createStoredProcedureQuery("sp_comunidad_contar");
             spContar.registerStoredProcedureParameter("p_q", String.class, ParameterMode.IN);
             spContar.registerStoredProcedureParameter("p_activo", Integer.class, ParameterMode.IN);
+            enableNullParam(spContar, "p_activo");
             spContar.setParameter("p_q", safe(q));
             spContar.setParameter("p_activo", activo);
             spContar.execute();
@@ -33,6 +35,7 @@ public class ComunidadDAO {
             spListar.registerStoredProcedureParameter("p_activo", Integer.class, ParameterMode.IN);
             spListar.registerStoredProcedureParameter("p_offset", Integer.class, ParameterMode.IN);
             spListar.registerStoredProcedureParameter("p_limit", Integer.class, ParameterMode.IN);
+            enableNullParam(spListar, "p_activo");
             spListar.setParameter("p_q", safe(q));
             spListar.setParameter("p_activo", activo);
             spListar.setParameter("p_offset", offset);
@@ -232,5 +235,15 @@ public class ComunidadDAO {
 
     private String safe(Object value) {
         return value == null ? "" : String.valueOf(value);
+    }
+
+    private void enableNullParam(StoredProcedureQuery sp, String paramName) {
+        try {
+            sp.unwrap(ProcedureCall.class)
+                    .getParameterRegistration(paramName)
+                    .enablePassingNulls(true);
+        } catch (RuntimeException ignored) {
+            // Fallback: if provider does not support this, keep default behavior.
+        }
     }
 }

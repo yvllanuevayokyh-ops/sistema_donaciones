@@ -40,7 +40,9 @@ BEGIN
             p_q IS NULL OR p_q = '' OR
             CAST(d.id_donacion AS CHAR) LIKE CONCAT('%', REPLACE(REPLACE(UPPER(p_q), 'DON-', ''), ' ', ''), '%') OR
             CONCAT('DON-', LPAD(d.id_donacion, 3, '0')) LIKE CONCAT('%', UPPER(p_q), '%') OR
-            UPPER(d.descripcion) LIKE CONCAT('%', UPPER(p_q), '%')
+            UPPER(d.descripcion) LIKE CONCAT('%', UPPER(p_q), '%') OR
+            UPPER(COALESCE(dn.nombre, '')) LIKE CONCAT('%', UPPER(p_q), '%') OR
+            UPPER(COALESCE(dn.email, '')) LIKE CONCAT('%', UPPER(p_q), '%')
         )
         AND
         (
@@ -63,12 +65,15 @@ CREATE PROCEDURE sp_donacion_contar(
 BEGIN
     SELECT COUNT(*) AS total
     FROM donacion d
+    INNER JOIN donante dn ON dn.id_donante = d.id_donante
     WHERE
         (
             p_q IS NULL OR p_q = '' OR
             CAST(d.id_donacion AS CHAR) LIKE CONCAT('%', REPLACE(REPLACE(UPPER(p_q), 'DON-', ''), ' ', ''), '%') OR
             CONCAT('DON-', LPAD(d.id_donacion, 3, '0')) LIKE CONCAT('%', UPPER(p_q), '%') OR
-            UPPER(d.descripcion) LIKE CONCAT('%', UPPER(p_q), '%')
+            UPPER(d.descripcion) LIKE CONCAT('%', UPPER(p_q), '%') OR
+            UPPER(COALESCE(dn.nombre, '')) LIKE CONCAT('%', UPPER(p_q), '%') OR
+            UPPER(COALESCE(dn.email, '')) LIKE CONCAT('%', UPPER(p_q), '%')
         )
         AND
         (

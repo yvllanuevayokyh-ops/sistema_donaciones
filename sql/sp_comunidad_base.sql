@@ -23,26 +23,20 @@ BEGIN
     SELECT
         c.id_comunidad,
         c.nombre,
-        COALESCE(c.ubicacion, '') AS ubicacion,
-        COALESCE(c.descripcion, '') AS descripcion,
-        COALESCE(c.cantidad_beneficiarios, 0) AS cantidad_beneficiarios,
+        c.ubicacion,
+        c.descripcion,
+        c.cantidad_beneficiarios,
         c.id_pais,
-        p.nombre AS pais,
-        c.activo,
-        COUNT(DISTINCT ed.id_donacion) AS donaciones_recibidas
+        c.activo
     FROM comunidad_vulnerable c
-    INNER JOIN pais p ON p.id_pais = c.id_pais
-    LEFT JOIN entrega_donacion ed ON ed.id_comunidad = c.id_comunidad
     WHERE
         (
             p_q IS NULL OR p_q = '' OR
             UPPER(c.nombre) LIKE CONCAT('%', UPPER(p_q), '%') OR
-            UPPER(COALESCE(c.ubicacion, '')) LIKE CONCAT('%', UPPER(p_q), '%')
+            UPPER(COALESCE(c.ubicacion, '')) LIKE CONCAT('%', UPPER(p_q), '%') OR
+            UPPER(COALESCE(c.descripcion, '')) LIKE CONCAT('%', UPPER(p_q), '%')
         )
         AND (p_activo IS NULL OR c.activo = p_activo)
-    GROUP BY
-        c.id_comunidad, c.nombre, c.ubicacion, c.descripcion,
-        c.cantidad_beneficiarios, c.id_pais, p.nombre, c.activo
     ORDER BY c.nombre ASC
     LIMIT p_offset, p_limit;
 END$$
@@ -58,7 +52,8 @@ BEGIN
         (
             p_q IS NULL OR p_q = '' OR
             UPPER(c.nombre) LIKE CONCAT('%', UPPER(p_q), '%') OR
-            UPPER(COALESCE(c.ubicacion, '')) LIKE CONCAT('%', UPPER(p_q), '%')
+            UPPER(COALESCE(c.ubicacion, '')) LIKE CONCAT('%', UPPER(p_q), '%') OR
+            UPPER(COALESCE(c.descripcion, '')) LIKE CONCAT('%', UPPER(p_q), '%')
         )
         AND (p_activo IS NULL OR c.activo = p_activo);
 END$$
@@ -70,20 +65,13 @@ BEGIN
     SELECT
         c.id_comunidad,
         c.nombre,
-        COALESCE(c.ubicacion, '') AS ubicacion,
-        COALESCE(c.descripcion, '') AS descripcion,
-        COALESCE(c.cantidad_beneficiarios, 0) AS cantidad_beneficiarios,
+        c.ubicacion,
+        c.descripcion,
+        c.cantidad_beneficiarios,
         c.id_pais,
-        p.nombre AS pais,
-        c.activo,
-        COUNT(DISTINCT ed.id_donacion) AS donaciones_recibidas
+        c.activo
     FROM comunidad_vulnerable c
-    INNER JOIN pais p ON p.id_pais = c.id_pais
-    LEFT JOIN entrega_donacion ed ON ed.id_comunidad = c.id_comunidad
     WHERE c.id_comunidad = p_id_comunidad
-    GROUP BY
-        c.id_comunidad, c.nombre, c.ubicacion, c.descripcion,
-        c.cantidad_beneficiarios, c.id_pais, p.nombre, c.activo
     LIMIT 1;
 END$$
 
