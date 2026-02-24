@@ -20,7 +20,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 
 @Controller
-public class DonacionServlet {
+public class DonacionController {
 
     private static final int PAGE_SIZE = 4;
 
@@ -403,3 +403,4 @@ public class DonacionServlet {
         return value == null ? "" : value;
     }
 }
+

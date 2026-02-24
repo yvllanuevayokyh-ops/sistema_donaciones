@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 
 @Controller
-public class RolesPermisosServlet {
+public class RolesPermisosController {
 
     private final RolesPermisosDAO dao = new RolesPermisosDAO();
     private static final int PAGE_SIZE = 8;
@@ -294,6 +294,7 @@ public class RolesPermisosServlet {
         return value == null ? "" : value;
     }
 }
+
 
 
 

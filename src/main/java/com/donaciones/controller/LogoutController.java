@@ -6,7 +6,7 @@ import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
-public class LogoutServlet {
+public class LogoutController {
 
     @GetMapping("/logout")
     public String cerrarSesion(HttpServletRequest request) {
@@ -18,3 +18,4 @@ public class LogoutServlet {
         return "redirect:/login";
     }
 }
+

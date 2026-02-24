@@ -22,7 +22,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 
 @Controller
-public class EntregaServlet {
+public class EntregaController {
 
     private static final int PAGE_SIZE = 6;
 
@@ -294,3 +294,4 @@ public class EntregaServlet {
         return value == null ? "" : value;
     }
 }
+

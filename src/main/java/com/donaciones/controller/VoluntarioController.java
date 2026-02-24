@@ -1,11 +1,10 @@
 package com.donaciones.controller;
 
-import com.donaciones.dao.ComunidadDAO;
-import com.donaciones.dao.PaisDAO;
 import com.donaciones.dao.ResultadoPaginado;
-import com.donaciones.model.ComunidadVulnerable;
-import com.donaciones.model.Pais;
+import com.donaciones.dao.VoluntarioDAO;
+import com.donaciones.model.Voluntario;
 import java.io.IOException;
+import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -18,21 +17,18 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 
 @Controller
-public class ComunidadServlet {
+public class VoluntarioController {
 
     private static final int PAGE_SIZE = 4;
 
-    private final ComunidadDAO comunidadDAO = new ComunidadDAO();
-    private final PaisDAO paisDAO = new PaisDAO();
+    private final VoluntarioDAO voluntarioDAO = new VoluntarioDAO();
 
-    @GetMapping("/comunidades")
+    @GetMapping("/voluntarios")
     public String doGet(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         if (!isAuthenticated(request, response)) {
             return null;
         }
-
-        boolean comunidadView = isComunidadRole(request);
         if (isDonanteRole(request)) {
             denyForDonante(request, response);
             return null;
@@ -49,95 +45,99 @@ public class ComunidadServlet {
             currentPage = 1;
         }
 
-        Integer filtroActivo = toActivoFilter(situacion);
+        Integer filtroEstado = toEstadoFilter(situacion);
         Integer selectedId = parseInteger(request.getParameter("id"));
         Integer editarId = parseInteger(request.getParameter("editarId"));
-        if (comunidadView) {
-            editarId = null;
-        }
         boolean showForm = "1".equals(safe(request.getParameter("nuevo"))) || editarId != null;
-        if (comunidadView) {
-            showForm = false;
-        }
 
-        List<ComunidadVulnerable> comunidades = new ArrayList<ComunidadVulnerable>();
-        List<Pais> paises = new ArrayList<Pais>();
-        ComunidadVulnerable detalle = null;
-        ComunidadVulnerable edicion = null;
+        List<Voluntario> voluntarios = new ArrayList<Voluntario>();
+        Voluntario detalle = null;
+        Voluntario edicion = null;
         int totalRows = 0;
         int totalPages = 1;
-        int donacionesDetalle = 0;
-        Map<Integer, Integer> donacionesPorComunidad = new LinkedHashMap<Integer, Integer>();
+        int totalActivos = 0;
+        int entregasCompletadas = 0;
+
+        Map<Integer, Integer> entregasTotalesPorVoluntario = new LinkedHashMap<Integer, Integer>();
+        Map<Integer, Integer> entregasCompletadasPorVoluntario = new LinkedHashMap<Integer, Integer>();
+        int entregasDetalle = 0;
+        int entregasCompletadasDetalle = 0;
 
         try {
-            ResultadoPaginado<ComunidadVulnerable> resultado = comunidadDAO.buscarYPaginar(
-                    q, filtroActivo, currentPage, PAGE_SIZE
+            ResultadoPaginado<Voluntario> resultado = voluntarioDAO.buscarYPaginar(
+                    q, filtroEstado, currentPage, PAGE_SIZE
             );
             if (currentPage > resultado.getTotalPaginas()) {
                 currentPage = Math.max(1, resultado.getTotalPaginas());
-                resultado = comunidadDAO.buscarYPaginar(q, filtroActivo, currentPage, PAGE_SIZE);
+                resultado = voluntarioDAO.buscarYPaginar(q, filtroEstado, currentPage, PAGE_SIZE);
             }
 
-            comunidades = safeList(resultado.getDatos());
+            voluntarios = safeList(resultado.getDatos());
             totalRows = resultado.getTotalRegistros();
             totalPages = Math.max(1, resultado.getTotalPaginas());
 
             List<Integer> ids = new ArrayList<Integer>();
-            for (ComunidadVulnerable c : comunidades) {
-                if (c != null && c.getIdComunidad() != null) {
-                    ids.add(c.getIdComunidad());
+            for (Voluntario v : voluntarios) {
+                if (v != null && v.getIdVoluntario() != null) {
+                    ids.add(v.getIdVoluntario());
                 }
             }
-            donacionesPorComunidad = comunidadDAO.contarDonacionesRecibidasPorComunidades(ids);
+            entregasTotalesPorVoluntario = voluntarioDAO.contarEntregasTotalesPorVoluntarios(ids);
+            entregasCompletadasPorVoluntario = voluntarioDAO.contarEntregasCompletadasPorVoluntarios(ids);
 
-            paises = safeList(paisDAO.listar());
+            totalActivos = voluntarioDAO.buscarYPaginar("", 1, 1, 1).getTotalRegistros();
+            entregasCompletadas = voluntarioDAO.contarEntregasCompletadas();
 
-            if (selectedId == null && !comunidades.isEmpty()) {
-                selectedId = comunidades.get(0).getIdComunidad();
+            if (selectedId == null && !voluntarios.isEmpty()) {
+                selectedId = voluntarios.get(0).getIdVoluntario();
             }
             if (editarId != null && selectedId == null) {
                 selectedId = editarId;
             }
             if (selectedId != null) {
-                detalle = comunidadDAO.buscarDetalle(selectedId);
-                donacionesDetalle = comunidadDAO.contarDonacionesRecibidas(selectedId);
+                detalle = voluntarioDAO.buscarDetalle(selectedId);
+                entregasDetalle = voluntarioDAO.contarEntregasTotalesPorVoluntario(selectedId);
+                entregasCompletadasDetalle = voluntarioDAO.contarEntregasCompletadasPorVoluntario(selectedId);
             }
             if (editarId != null) {
-                edicion = comunidadDAO.buscarDetalle(editarId);
+                edicion = voluntarioDAO.buscarDetalle(editarId);
             }
         } catch (Exception ex) {
             ex.printStackTrace();
-            request.getSession().setAttribute("mensaje", "Error: no se pudo cargar modulo comunidades");
+            request.getSession().setAttribute("mensaje", "Error: no se pudo cargar modulo voluntarios");
             totalPages = 1;
         }
 
-        request.setAttribute("comunidades", comunidades);
-        request.setAttribute("paises", paises);
+        request.setAttribute("voluntarios", voluntarios);
         request.setAttribute("detalle", detalle);
         request.setAttribute("edicion", edicion);
-        request.setAttribute("donacionesPorComunidad", donacionesPorComunidad);
-        request.setAttribute("donacionesDetalle", donacionesDetalle);
         request.setAttribute("showForm", showForm);
         request.setAttribute("selectedId", selectedId);
         request.setAttribute("q", q);
         request.setAttribute("situacion", situacion);
-        request.setAttribute("isComunidadView", comunidadView);
         request.setAttribute("hoy", LocalDate.now().toString());
         request.setAttribute("totalRows", totalRows);
         request.setAttribute("currentPage", currentPage);
         request.setAttribute("pageSize", PAGE_SIZE);
         request.setAttribute("totalPages", totalPages);
+        request.setAttribute("totalActivos", totalActivos);
+        request.setAttribute("entregasCompletadas", entregasCompletadas);
+        request.setAttribute("horasVoluntariado", entregasCompletadas * 4);
+        request.setAttribute("entregasTotalesPorVoluntario", entregasTotalesPorVoluntario);
+        request.setAttribute("entregasCompletadasPorVoluntario", entregasCompletadasPorVoluntario);
+        request.setAttribute("entregasDetalle", entregasDetalle);
+        request.setAttribute("entregasCompletadasDetalle", entregasCompletadasDetalle);
 
-        return "comunidades/index";
+        return "voluntarios/index";
     }
 
-    @PostMapping("/comunidades")
+    @PostMapping("/voluntarios")
     public void doPost(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         if (!isAuthenticated(request, response)) {
             return;
         }
-        if (isDonanteRole(request) || isComunidadRole(request)) {
+        if (isDonanteRole(request)) {
             denyForDonante(request, response);
             return;
         }
@@ -146,97 +146,95 @@ public class ComunidadServlet {
         try {
             switch (accion) {
                 case "crear":
-                    crearComunidad(request, response);
+                    crearVoluntario(request, response);
                     return;
                 case "editar":
-                    editarComunidad(request, response);
+                    editarVoluntario(request, response);
                     return;
                 case "eliminar":
-                case "inactivar":
-                    cambiarActivo(parseInteger(request.getParameter("id")), false, request, response);
+                    cambiarEstado(parseInteger(request.getParameter("id")), false, request, response);
                     return;
                 case "restaurar":
-                    cambiarActivo(parseInteger(request.getParameter("id")), true, request, response);
+                    cambiarEstado(parseInteger(request.getParameter("id")), true, request, response);
                     return;
                 default:
-                    response.sendRedirect(request.getContextPath() + "/comunidades");
+                    response.sendRedirect(request.getContextPath() + "/voluntarios");
             }
         } catch (Exception ex) {
             ex.printStackTrace();
             request.getSession().setAttribute("mensaje", "Error: operacion no completada");
-            response.sendRedirect(request.getContextPath() + "/comunidades");
+            response.sendRedirect(request.getContextPath() + "/voluntarios");
         }
     }
 
-    private void crearComunidad(HttpServletRequest request, HttpServletResponse response) throws Exception {
+    private void crearVoluntario(HttpServletRequest request, HttpServletResponse response) throws Exception {
         String nombre = safe(request.getParameter("nombre"));
-        String ubicacion = safe(request.getParameter("ubicacion"));
-        String descripcion = safe(request.getParameter("descripcion"));
-        String beneficiarios = safe(request.getParameter("cantidad_beneficiarios"));
-        String idPais = safe(request.getParameter("id_pais"));
+        String telefono = safe(request.getParameter("telefono"));
+        String email = safe(request.getParameter("email"));
+        String fechaIngreso = safe(request.getParameter("fecha_ingreso"));
+        if (fechaIngreso.isEmpty()) {
+            fechaIngreso = LocalDate.now().toString();
+        }
 
-        if (nombre.isEmpty() || idPais.isEmpty()) {
-            request.getSession().setAttribute("mensaje", "Error: nombre y pais son requeridos");
-            response.sendRedirect(request.getContextPath() + "/comunidades");
+        if (nombre.isEmpty()) {
+            request.getSession().setAttribute("mensaje", "Error: nombre es requerido");
+            response.sendRedirect(request.getContextPath() + "/voluntarios");
             return;
         }
 
-        int newId = comunidadDAO.crear(
+        int newId = voluntarioDAO.crear(
                 nombre,
-                ubicacion,
-                descripcion,
-                parseInt(beneficiarios, 0),
-                Integer.parseInt(idPais)
+                telefono,
+                email,
+                Date.valueOf(LocalDate.parse(fechaIngreso))
         );
 
-        request.getSession().setAttribute("mensaje", "Comunidad registrada correctamente");
+        request.getSession().setAttribute("mensaje", "Voluntario registrado correctamente");
         if (newId > 0) {
-            response.sendRedirect(request.getContextPath() + "/comunidades?id=" + newId);
+            response.sendRedirect(request.getContextPath() + "/voluntarios?id=" + newId);
             return;
         }
-        response.sendRedirect(request.getContextPath() + "/comunidades");
+        response.sendRedirect(request.getContextPath() + "/voluntarios");
     }
 
-    private void editarComunidad(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        Integer idComunidad = parseInteger(request.getParameter("id_comunidad"));
+    private void editarVoluntario(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        Integer idVoluntario = parseInteger(request.getParameter("id_voluntario"));
         String nombre = safe(request.getParameter("nombre"));
-        String ubicacion = safe(request.getParameter("ubicacion"));
-        String descripcion = safe(request.getParameter("descripcion"));
-        String beneficiarios = safe(request.getParameter("cantidad_beneficiarios"));
-        String idPais = safe(request.getParameter("id_pais"));
+        String telefono = safe(request.getParameter("telefono"));
+        String email = safe(request.getParameter("email"));
+        String fechaIngreso = safe(request.getParameter("fecha_ingreso"));
 
-        if (idComunidad == null || nombre.isEmpty() || idPais.isEmpty()) {
+        if (idVoluntario == null || nombre.isEmpty() || fechaIngreso.isEmpty()) {
             request.getSession().setAttribute("mensaje", "Error: datos incompletos para editar");
-            response.sendRedirect(request.getContextPath() + "/comunidades");
+            response.sendRedirect(request.getContextPath() + "/voluntarios");
             return;
         }
 
-        comunidadDAO.editar(
-                idComunidad,
+        voluntarioDAO.editar(
+                idVoluntario,
                 nombre,
-                ubicacion,
-                descripcion,
-                parseInt(beneficiarios, 0),
-                Integer.parseInt(idPais)
+                telefono,
+                email,
+                Date.valueOf(LocalDate.parse(fechaIngreso))
         );
 
-        request.getSession().setAttribute("mensaje", "Comunidad actualizada correctamente");
-        response.sendRedirect(request.getContextPath() + "/comunidades?id=" + idComunidad);
+        request.getSession().setAttribute("mensaje", "Voluntario actualizado correctamente");
+        response.sendRedirect(request.getContextPath() + "/voluntarios?id=" + idVoluntario);
     }
 
-    private void cambiarActivo(Integer id, boolean restaurar,
+    private void cambiarEstado(Integer id, boolean restaurar,
                                HttpServletRequest request, HttpServletResponse response) throws Exception {
         if (id == null) {
-            request.getSession().setAttribute("mensaje", "Error: id de comunidad invalido");
-            response.sendRedirect(request.getContextPath() + "/comunidades");
+            request.getSession().setAttribute("mensaje", "Error: id de voluntario invalido");
+            response.sendRedirect(request.getContextPath() + "/voluntarios");
             return;
         }
 
-        comunidadDAO.cambiarActivo(id, restaurar);
+        voluntarioDAO.cambiarEstado(id, restaurar);
 
         request.getSession().setAttribute("mensaje",
-                restaurar ? "Comunidad restaurada correctamente" : "Comunidad eliminada correctamente");
-        response.sendRedirect(request.getContextPath() + "/comunidades?id=" + id);
+                restaurar ? "Voluntario restaurado correctamente" : "Voluntario eliminado correctamente");
+        response.sendRedirect(request.getContextPath() + "/voluntarios?id=" + id);
     }
 
     private boolean isAuthenticated(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -250,13 +248,9 @@ public class ComunidadServlet {
     private boolean isDonanteRole(HttpServletRequest request) {
         Object roleObj = request.getSession(false) != null ? request.getSession(false).getAttribute("usuarioRol") : null;
         String rol = roleObj == null ? "" : String.valueOf(roleObj);
-        return "Institucion Donante".equalsIgnoreCase(rol) || "Persona Natural".equalsIgnoreCase(rol);
-    }
-
-    private boolean isComunidadRole(HttpServletRequest request) {
-        Object roleObj = request.getSession(false) != null ? request.getSession(false).getAttribute("usuarioRol") : null;
-        String rol = roleObj == null ? "" : String.valueOf(roleObj);
-        return "Comunidad".equalsIgnoreCase(rol);
+        return "Institucion Donante".equalsIgnoreCase(rol)
+                || "Persona Natural".equalsIgnoreCase(rol)
+                || "Comunidad".equalsIgnoreCase(rol);
     }
 
     private void denyForDonante(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -286,7 +280,7 @@ public class ComunidadServlet {
         }
     }
 
-    private Integer toActivoFilter(String situacion) {
+    private Integer toEstadoFilter(String situacion) {
         if ("Inactivos".equalsIgnoreCase(situacion)) {
             return 0;
         }
@@ -304,3 +298,4 @@ public class ComunidadServlet {
         return value == null ? "" : value;
     }
 }
+

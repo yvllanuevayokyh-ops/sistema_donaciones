@@ -11,7 +11,7 @@ import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.GetMapping;
 
 @Controller
-public class HomeServlet {
+public class HomeController {
 
     private final DashboardDAO dashboardDAO = new DashboardDAO();
     private final DonanteDAO donanteDAO = new DonanteDAO();
@@ -169,3 +169,4 @@ public class HomeServlet {
         List<String[]> donacionesRecientes = new ArrayList<String[]>();
     }
 }
+

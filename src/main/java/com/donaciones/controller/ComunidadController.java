@@ -1,11 +1,11 @@
 package com.donaciones.controller;
 
-import com.donaciones.dao.CampaniaDAO;
+import com.donaciones.dao.ComunidadDAO;
+import com.donaciones.dao.PaisDAO;
 import com.donaciones.dao.ResultadoPaginado;
-import com.donaciones.model.Campania;
+import com.donaciones.model.ComunidadVulnerable;
+import com.donaciones.model.Pais;
 import java.io.IOException;
-import java.math.BigDecimal;
-import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -18,28 +18,27 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 
 @Controller
-public class CampaniaServlet {
+public class ComunidadController {
 
     private static final int PAGE_SIZE = 4;
 
-    private final CampaniaDAO campaniaDAO = new CampaniaDAO();
+    private final ComunidadDAO comunidadDAO = new ComunidadDAO();
+    private final PaisDAO paisDAO = new PaisDAO();
 
-    @GetMapping("/campanias")
+    @GetMapping("/comunidades")
     public String doGet(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         if (!isAuthenticated(request, response)) {
             return null;
         }
 
-        boolean donanteView = isDonanteRole(request);
         boolean comunidadView = isComunidadRole(request);
-        boolean readOnlyView = donanteView || comunidadView;
+        if (isDonanteRole(request)) {
+            denyForDonante(request, response);
+            return null;
+        }
 
         String q = safe(request.getParameter("q")).trim();
-        String estado = safe(request.getParameter("estado")).trim();
-        if (estado.isEmpty()) {
-            estado = "Todas";
-        }
         String situacion = safe(request.getParameter("situacion")).trim();
         if (situacion.isEmpty()) {
             situacion = "Activos";
@@ -53,91 +52,86 @@ public class CampaniaServlet {
         Integer filtroActivo = toActivoFilter(situacion);
         Integer selectedId = parseInteger(request.getParameter("id"));
         Integer editarId = parseInteger(request.getParameter("editarId"));
-        if (readOnlyView) {
+        if (comunidadView) {
             editarId = null;
         }
         boolean showForm = "1".equals(safe(request.getParameter("nuevo"))) || editarId != null;
-        if (readOnlyView) {
+        if (comunidadView) {
             showForm = false;
         }
 
-        List<Campania> campanias = new ArrayList<Campania>();
-        Campania detalle = null;
-        Campania edicion = null;
+        List<ComunidadVulnerable> comunidades = new ArrayList<ComunidadVulnerable>();
+        List<Pais> paises = new ArrayList<Pais>();
+        ComunidadVulnerable detalle = null;
+        ComunidadVulnerable edicion = null;
         int totalRows = 0;
         int totalPages = 1;
-
-        Map<Integer, BigDecimal> recaudadoPorCampania = new LinkedHashMap<Integer, BigDecimal>();
-        Map<Integer, Integer> donacionesPorCampania = new LinkedHashMap<Integer, Integer>();
-        BigDecimal recaudadoDetalle = BigDecimal.ZERO;
-        int totalDonacionesDetalle = 0;
+        int donacionesDetalle = 0;
+        Map<Integer, Integer> donacionesPorComunidad = new LinkedHashMap<Integer, Integer>();
 
         try {
-            ResultadoPaginado<Campania> resultado = campaniaDAO.buscarYPaginar(
-                    q, estado, filtroActivo, currentPage, PAGE_SIZE
+            ResultadoPaginado<ComunidadVulnerable> resultado = comunidadDAO.buscarYPaginar(
+                    q, filtroActivo, currentPage, PAGE_SIZE
             );
             if (currentPage > resultado.getTotalPaginas()) {
                 currentPage = Math.max(1, resultado.getTotalPaginas());
-                resultado = campaniaDAO.buscarYPaginar(q, estado, filtroActivo, currentPage, PAGE_SIZE);
+                resultado = comunidadDAO.buscarYPaginar(q, filtroActivo, currentPage, PAGE_SIZE);
             }
 
-            campanias = safeList(resultado.getDatos());
+            comunidades = safeList(resultado.getDatos());
             totalRows = resultado.getTotalRegistros();
             totalPages = Math.max(1, resultado.getTotalPaginas());
 
             List<Integer> ids = new ArrayList<Integer>();
-            for (Campania c : campanias) {
-                if (c != null && c.getIdCampania() != null) {
-                    ids.add(c.getIdCampania());
+            for (ComunidadVulnerable c : comunidades) {
+                if (c != null && c.getIdComunidad() != null) {
+                    ids.add(c.getIdComunidad());
                 }
             }
-            recaudadoPorCampania = campaniaDAO.obtenerMontosRecaudados(ids);
-            donacionesPorCampania = campaniaDAO.contarDonacionesPorCampania(ids);
+            donacionesPorComunidad = comunidadDAO.contarDonacionesRecibidasPorComunidades(ids);
 
-            if (selectedId == null && !campanias.isEmpty()) {
-                selectedId = campanias.get(0).getIdCampania();
+            paises = safeList(paisDAO.listar());
+
+            if (selectedId == null && !comunidades.isEmpty()) {
+                selectedId = comunidades.get(0).getIdComunidad();
             }
             if (editarId != null && selectedId == null) {
                 selectedId = editarId;
             }
             if (selectedId != null) {
-                detalle = campaniaDAO.buscarDetalle(selectedId);
-                recaudadoDetalle = recaudadoPorCampania.getOrDefault(selectedId, BigDecimal.ZERO);
-                totalDonacionesDetalle = donacionesPorCampania.getOrDefault(selectedId, 0);
+                detalle = comunidadDAO.buscarDetalle(selectedId);
+                donacionesDetalle = comunidadDAO.contarDonacionesRecibidas(selectedId);
             }
             if (editarId != null) {
-                edicion = campaniaDAO.buscarDetalle(editarId);
+                edicion = comunidadDAO.buscarDetalle(editarId);
             }
         } catch (Exception ex) {
             ex.printStackTrace();
-            request.getSession().setAttribute("mensaje", "Error: no se pudo cargar modulo campanias");
+            request.getSession().setAttribute("mensaje", "Error: no se pudo cargar modulo comunidades");
             totalPages = 1;
         }
 
-        request.setAttribute("campanias", campanias);
+        request.setAttribute("comunidades", comunidades);
+        request.setAttribute("paises", paises);
         request.setAttribute("detalle", detalle);
         request.setAttribute("edicion", edicion);
+        request.setAttribute("donacionesPorComunidad", donacionesPorComunidad);
+        request.setAttribute("donacionesDetalle", donacionesDetalle);
         request.setAttribute("showForm", showForm);
-        request.setAttribute("isDonanteView", donanteView);
-        request.setAttribute("isComunidadView", comunidadView);
         request.setAttribute("selectedId", selectedId);
         request.setAttribute("q", q);
-        request.setAttribute("estado", estado);
         request.setAttribute("situacion", situacion);
+        request.setAttribute("isComunidadView", comunidadView);
         request.setAttribute("hoy", LocalDate.now().toString());
         request.setAttribute("totalRows", totalRows);
         request.setAttribute("currentPage", currentPage);
         request.setAttribute("pageSize", PAGE_SIZE);
         request.setAttribute("totalPages", totalPages);
-        request.setAttribute("recaudadoPorCampania", recaudadoPorCampania);
-        request.setAttribute("donacionesPorCampania", donacionesPorCampania);
-        request.setAttribute("recaudadoDetalle", recaudadoDetalle);
-        request.setAttribute("totalDonacionesDetalle", totalDonacionesDetalle);
 
-        return "campanias/index";
+        return "comunidades/index";
     }
 
-    @PostMapping("/campanias")
+    @PostMapping("/comunidades")
     public void doPost(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         if (!isAuthenticated(request, response)) {
@@ -152,115 +146,97 @@ public class CampaniaServlet {
         try {
             switch (accion) {
                 case "crear":
-                    crearCampania(request, response);
+                    crearComunidad(request, response);
                     return;
                 case "editar":
-                    editarCampania(request, response);
+                    editarComunidad(request, response);
                     return;
                 case "eliminar":
+                case "inactivar":
                     cambiarActivo(parseInteger(request.getParameter("id")), false, request, response);
                     return;
                 case "restaurar":
                     cambiarActivo(parseInteger(request.getParameter("id")), true, request, response);
                     return;
                 default:
-                    response.sendRedirect(request.getContextPath() + "/campanias");
+                    response.sendRedirect(request.getContextPath() + "/comunidades");
             }
         } catch (Exception ex) {
             ex.printStackTrace();
             request.getSession().setAttribute("mensaje", "Error: operacion no completada");
-            response.sendRedirect(request.getContextPath() + "/campanias");
+            response.sendRedirect(request.getContextPath() + "/comunidades");
         }
     }
 
-    private void crearCampania(HttpServletRequest request, HttpServletResponse response) throws Exception {
+    private void crearComunidad(HttpServletRequest request, HttpServletResponse response) throws Exception {
         String nombre = safe(request.getParameter("nombre"));
+        String ubicacion = safe(request.getParameter("ubicacion"));
         String descripcion = safe(request.getParameter("descripcion"));
-        String fechaInicio = safe(request.getParameter("fecha_inicio"));
-        String fechaFin = safe(request.getParameter("fecha_fin"));
-        String estado = safe(request.getParameter("estado"));
-        BigDecimal montoObjetivo = parseDecimal(request.getParameter("monto_objetivo"));
+        String beneficiarios = safe(request.getParameter("cantidad_beneficiarios"));
+        String idPais = safe(request.getParameter("id_pais"));
 
-        if (nombre.isEmpty()) {
-            request.getSession().setAttribute("mensaje", "Error: nombre es requerido");
-            response.sendRedirect(request.getContextPath() + "/campanias");
+        if (nombre.isEmpty() || idPais.isEmpty()) {
+            request.getSession().setAttribute("mensaje", "Error: nombre y pais son requeridos");
+            response.sendRedirect(request.getContextPath() + "/comunidades");
             return;
         }
-        if (fechaInicio.isEmpty()) {
-            fechaInicio = LocalDate.now().toString();
-        }
-        if (estado.isEmpty()) {
-            estado = "Activa";
-        }
-        if (montoObjetivo == null) {
-            montoObjetivo = BigDecimal.ZERO;
-        }
 
-        int newId = campaniaDAO.crear(
+        int newId = comunidadDAO.crear(
                 nombre,
+                ubicacion,
                 descripcion,
-                Date.valueOf(LocalDate.parse(fechaInicio)),
-                fechaFin.isEmpty() ? null : Date.valueOf(LocalDate.parse(fechaFin)),
-                estado,
-                montoObjetivo
+                parseInt(beneficiarios, 0),
+                Integer.parseInt(idPais)
         );
 
-        request.getSession().setAttribute("mensaje", "Campania registrada correctamente");
+        request.getSession().setAttribute("mensaje", "Comunidad registrada correctamente");
         if (newId > 0) {
-            response.sendRedirect(request.getContextPath() + "/campanias?id=" + newId);
+            response.sendRedirect(request.getContextPath() + "/comunidades?id=" + newId);
             return;
         }
-        response.sendRedirect(request.getContextPath() + "/campanias");
+        response.sendRedirect(request.getContextPath() + "/comunidades");
     }
 
-    private void editarCampania(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        Integer idCampania = parseInteger(request.getParameter("id_campania"));
+    private void editarComunidad(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        Integer idComunidad = parseInteger(request.getParameter("id_comunidad"));
         String nombre = safe(request.getParameter("nombre"));
+        String ubicacion = safe(request.getParameter("ubicacion"));
         String descripcion = safe(request.getParameter("descripcion"));
-        String fechaInicio = safe(request.getParameter("fecha_inicio"));
-        String fechaFin = safe(request.getParameter("fecha_fin"));
-        String estado = safe(request.getParameter("estado"));
-        BigDecimal montoObjetivo = parseDecimal(request.getParameter("monto_objetivo"));
+        String beneficiarios = safe(request.getParameter("cantidad_beneficiarios"));
+        String idPais = safe(request.getParameter("id_pais"));
 
-        if (idCampania == null || nombre.isEmpty() || fechaInicio.isEmpty()) {
+        if (idComunidad == null || nombre.isEmpty() || idPais.isEmpty()) {
             request.getSession().setAttribute("mensaje", "Error: datos incompletos para editar");
-            response.sendRedirect(request.getContextPath() + "/campanias");
+            response.sendRedirect(request.getContextPath() + "/comunidades");
             return;
         }
-        if (estado.isEmpty()) {
-            estado = "Activa";
-        }
-        if (montoObjetivo == null) {
-            montoObjetivo = BigDecimal.ZERO;
-        }
 
-        campaniaDAO.editar(
-                idCampania,
+        comunidadDAO.editar(
+                idComunidad,
                 nombre,
+                ubicacion,
                 descripcion,
-                Date.valueOf(LocalDate.parse(fechaInicio)),
-                fechaFin.isEmpty() ? null : Date.valueOf(LocalDate.parse(fechaFin)),
-                estado,
-                montoObjetivo
+                parseInt(beneficiarios, 0),
+                Integer.parseInt(idPais)
         );
 
-        request.getSession().setAttribute("mensaje", "Campania actualizada correctamente");
-        response.sendRedirect(request.getContextPath() + "/campanias?id=" + idCampania);
+        request.getSession().setAttribute("mensaje", "Comunidad actualizada correctamente");
+        response.sendRedirect(request.getContextPath() + "/comunidades?id=" + idComunidad);
     }
 
     private void cambiarActivo(Integer id, boolean restaurar,
                                HttpServletRequest request, HttpServletResponse response) throws Exception {
         if (id == null) {
-            request.getSession().setAttribute("mensaje", "Error: id de campania invalido");
-            response.sendRedirect(request.getContextPath() + "/campanias");
+            request.getSession().setAttribute("mensaje", "Error: id de comunidad invalido");
+            response.sendRedirect(request.getContextPath() + "/comunidades");
             return;
         }
 
-        campaniaDAO.cambiarActivo(id, restaurar);
+        comunidadDAO.cambiarActivo(id, restaurar);
 
         request.getSession().setAttribute("mensaje",
-                restaurar ? "Campania restaurada correctamente" : "Campania eliminada correctamente");
-        response.sendRedirect(request.getContextPath() + "/campanias?id=" + id);
+                restaurar ? "Comunidad restaurada correctamente" : "Comunidad eliminada correctamente");
+        response.sendRedirect(request.getContextPath() + "/comunidades?id=" + id);
     }
 
     private boolean isAuthenticated(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -284,8 +260,8 @@ public class CampaniaServlet {
     }
 
     private void denyForDonante(HttpServletRequest request, HttpServletResponse response) throws IOException {
-        request.getSession().setAttribute("mensaje", "Accion no permitida para este rol");
-        response.sendRedirect(request.getContextPath() + "/campanias");
+        request.getSession().setAttribute("mensaje", "Acceso restringido para este rol");
+        response.sendRedirect(request.getContextPath() + "/home");
     }
 
     private Integer parseInteger(String value) {
@@ -310,17 +286,6 @@ public class CampaniaServlet {
         }
     }
 
-    private BigDecimal parseDecimal(String value) {
-        try {
-            if (value == null || value.isBlank()) {
-                return null;
-            }
-            return new BigDecimal(value);
-        } catch (NumberFormatException ex) {
-            return null;
-        }
-    }
-
     private Integer toActivoFilter(String situacion) {
         if ("Inactivos".equalsIgnoreCase(situacion)) {
             return 0;
@@ -339,3 +304,4 @@ public class CampaniaServlet {
         return value == null ? "" : value;
     }
 }
+

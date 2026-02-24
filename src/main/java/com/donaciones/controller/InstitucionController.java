@@ -1,8 +1,10 @@
 package com.donaciones.controller;
 
+import com.donaciones.dao.DonanteDAO;
+import com.donaciones.dao.PaisDAO;
 import com.donaciones.dao.ResultadoPaginado;
-import com.donaciones.dao.VoluntarioDAO;
-import com.donaciones.model.Voluntario;
+import com.donaciones.model.Donante;
+import com.donaciones.model.Pais;
 import java.io.IOException;
 import java.sql.Date;
 import java.time.LocalDate;
@@ -17,13 +19,14 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 
 @Controller
-public class VoluntarioServlet {
+public class InstitucionController {
 
     private static final int PAGE_SIZE = 4;
 
-    private final VoluntarioDAO voluntarioDAO = new VoluntarioDAO();
+    private final DonanteDAO donanteDAO = new DonanteDAO();
+    private final PaisDAO paisDAO = new PaisDAO();
 
-    @GetMapping("/voluntarios")
+    @GetMapping("/instituciones")
     public String doGet(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         if (!isAuthenticated(request, response)) {
@@ -45,72 +48,66 @@ public class VoluntarioServlet {
             currentPage = 1;
         }
 
-        Integer filtroEstado = toEstadoFilter(situacion);
+        Integer filtroActivo = toActivoFilter(situacion);
         Integer selectedId = parseInteger(request.getParameter("id"));
         Integer editarId = parseInteger(request.getParameter("editarId"));
         boolean showForm = "1".equals(safe(request.getParameter("nuevo"))) || editarId != null;
 
-        List<Voluntario> voluntarios = new ArrayList<Voluntario>();
-        Voluntario detalle = null;
-        Voluntario edicion = null;
+        List<Donante> instituciones = new ArrayList<Donante>();
+        List<Pais> paises = new ArrayList<Pais>();
+        Donante detalle = null;
+        Donante edicion = null;
         int totalRows = 0;
         int totalPages = 1;
-        int totalActivos = 0;
-        int entregasCompletadas = 0;
-
-        Map<Integer, Integer> entregasTotalesPorVoluntario = new LinkedHashMap<Integer, Integer>();
-        Map<Integer, Integer> entregasCompletadasPorVoluntario = new LinkedHashMap<Integer, Integer>();
-        int entregasDetalle = 0;
-        int entregasCompletadasDetalle = 0;
+        int totalDonacionesDetalle = 0;
+        Map<Integer, Integer> donacionesPorInstitucion = new LinkedHashMap<Integer, Integer>();
 
         try {
-            ResultadoPaginado<Voluntario> resultado = voluntarioDAO.buscarYPaginar(
-                    q, filtroEstado, currentPage, PAGE_SIZE
-            );
+            ResultadoPaginado<Donante> resultado = donanteDAO.buscarYPaginar(q, filtroActivo, currentPage, PAGE_SIZE);
             if (currentPage > resultado.getTotalPaginas()) {
                 currentPage = Math.max(1, resultado.getTotalPaginas());
-                resultado = voluntarioDAO.buscarYPaginar(q, filtroEstado, currentPage, PAGE_SIZE);
+                resultado = donanteDAO.buscarYPaginar(q, filtroActivo, currentPage, PAGE_SIZE);
             }
 
-            voluntarios = safeList(resultado.getDatos());
+            instituciones = safeList(resultado.getDatos());
             totalRows = resultado.getTotalRegistros();
             totalPages = Math.max(1, resultado.getTotalPaginas());
 
             List<Integer> ids = new ArrayList<Integer>();
-            for (Voluntario v : voluntarios) {
-                if (v != null && v.getIdVoluntario() != null) {
-                    ids.add(v.getIdVoluntario());
+            for (Donante d : instituciones) {
+                if (d != null && d.getIdDonante() != null) {
+                    ids.add(d.getIdDonante());
                 }
             }
-            entregasTotalesPorVoluntario = voluntarioDAO.contarEntregasTotalesPorVoluntarios(ids);
-            entregasCompletadasPorVoluntario = voluntarioDAO.contarEntregasCompletadasPorVoluntarios(ids);
+            donacionesPorInstitucion = donanteDAO.contarDonacionesPorDonantes(ids);
 
-            totalActivos = voluntarioDAO.buscarYPaginar("", 1, 1, 1).getTotalRegistros();
-            entregasCompletadas = voluntarioDAO.contarEntregasCompletadas();
+            paises = safeList(paisDAO.listar());
 
-            if (selectedId == null && !voluntarios.isEmpty()) {
-                selectedId = voluntarios.get(0).getIdVoluntario();
+            if (selectedId == null && !instituciones.isEmpty()) {
+                selectedId = instituciones.get(0).getIdDonante();
             }
             if (editarId != null && selectedId == null) {
                 selectedId = editarId;
             }
             if (selectedId != null) {
-                detalle = voluntarioDAO.buscarDetalle(selectedId);
-                entregasDetalle = voluntarioDAO.contarEntregasTotalesPorVoluntario(selectedId);
-                entregasCompletadasDetalle = voluntarioDAO.contarEntregasCompletadasPorVoluntario(selectedId);
+                detalle = donanteDAO.buscarDetalle(selectedId);
+                totalDonacionesDetalle = donanteDAO.contarDonacionesPorDonante(selectedId);
             }
             if (editarId != null) {
-                edicion = voluntarioDAO.buscarDetalle(editarId);
+                edicion = donanteDAO.buscarDetalle(editarId);
             }
         } catch (Exception ex) {
             ex.printStackTrace();
-            request.getSession().setAttribute("mensaje", "Error: no se pudo cargar modulo voluntarios");
+            request.getSession().setAttribute("mensaje", "Error: no se pudo cargar modulo instituciones");
             totalPages = 1;
         }
 
-        request.setAttribute("voluntarios", voluntarios);
+        request.setAttribute("instituciones", instituciones);
+        request.setAttribute("paises", paises);
         request.setAttribute("detalle", detalle);
         request.setAttribute("edicion", edicion);
+        request.setAttribute("donacionesPorInstitucion", donacionesPorInstitucion);
+        request.setAttribute("totalDonacionesDetalle", totalDonacionesDetalle);
         request.setAttribute("showForm", showForm);
         request.setAttribute("selectedId", selectedId);
         request.setAttribute("q", q);
@@ -120,18 +117,11 @@ public class VoluntarioServlet {
         request.setAttribute("currentPage", currentPage);
         request.setAttribute("pageSize", PAGE_SIZE);
         request.setAttribute("totalPages", totalPages);
-        request.setAttribute("totalActivos", totalActivos);
-        request.setAttribute("entregasCompletadas", entregasCompletadas);
-        request.setAttribute("horasVoluntariado", entregasCompletadas * 4);
-        request.setAttribute("entregasTotalesPorVoluntario", entregasTotalesPorVoluntario);
-        request.setAttribute("entregasCompletadasPorVoluntario", entregasCompletadasPorVoluntario);
-        request.setAttribute("entregasDetalle", entregasDetalle);
-        request.setAttribute("entregasCompletadasDetalle", entregasCompletadasDetalle);
 
-        return "voluntarios/index";
+        return "instituciones/index";
     }
 
-    @PostMapping("/voluntarios")
+    @PostMapping("/instituciones")
     public void doPost(HttpServletRequest request, HttpServletResponse response)
             throws IOException {
         if (!isAuthenticated(request, response)) {
@@ -146,95 +136,114 @@ public class VoluntarioServlet {
         try {
             switch (accion) {
                 case "crear":
-                    crearVoluntario(request, response);
+                    crearInstitucion(request, response);
                     return;
                 case "editar":
-                    editarVoluntario(request, response);
+                    editarInstitucion(request, response);
                     return;
                 case "eliminar":
-                    cambiarEstado(parseInteger(request.getParameter("id")), false, request, response);
+                case "inactivar":
+                    cambiarActivo(parseInteger(request.getParameter("id")), false, request, response);
                     return;
                 case "restaurar":
-                    cambiarEstado(parseInteger(request.getParameter("id")), true, request, response);
+                    cambiarActivo(parseInteger(request.getParameter("id")), true, request, response);
                     return;
                 default:
-                    response.sendRedirect(request.getContextPath() + "/voluntarios");
+                    response.sendRedirect(request.getContextPath() + "/instituciones");
             }
         } catch (Exception ex) {
             ex.printStackTrace();
             request.getSession().setAttribute("mensaje", "Error: operacion no completada");
-            response.sendRedirect(request.getContextPath() + "/voluntarios");
+            response.sendRedirect(request.getContextPath() + "/instituciones");
         }
     }
 
-    private void crearVoluntario(HttpServletRequest request, HttpServletResponse response) throws Exception {
+    private void crearInstitucion(HttpServletRequest request, HttpServletResponse response) throws Exception {
         String nombre = safe(request.getParameter("nombre"));
-        String telefono = safe(request.getParameter("telefono"));
         String email = safe(request.getParameter("email"));
-        String fechaIngreso = safe(request.getParameter("fecha_ingreso"));
-        if (fechaIngreso.isEmpty()) {
-            fechaIngreso = LocalDate.now().toString();
-        }
+        String telefono = safe(request.getParameter("telefono"));
+        String direccion = safe(request.getParameter("direccion"));
+        String tipoDonante = safe(request.getParameter("tipo_donante"));
+        String idPais = safe(request.getParameter("id_pais"));
+        String fechaRegistro = safe(request.getParameter("fecha_registro"));
 
-        if (nombre.isEmpty()) {
-            request.getSession().setAttribute("mensaje", "Error: nombre es requerido");
-            response.sendRedirect(request.getContextPath() + "/voluntarios");
+        if (nombre.isEmpty() || idPais.isEmpty()) {
+            request.getSession().setAttribute("mensaje", "Error: nombre y pais son requeridos");
+            response.sendRedirect(request.getContextPath() + "/instituciones");
             return;
         }
 
-        int newId = voluntarioDAO.crear(
+        if (tipoDonante.isEmpty()) {
+            tipoDonante = "Institucion";
+        }
+        if (fechaRegistro.isEmpty()) {
+            fechaRegistro = LocalDate.now().toString();
+        }
+
+        int newId = donanteDAO.crear(
                 nombre,
-                telefono,
                 email,
-                Date.valueOf(LocalDate.parse(fechaIngreso))
+                telefono,
+                direccion,
+                tipoDonante,
+                Integer.parseInt(idPais),
+                Date.valueOf(LocalDate.parse(fechaRegistro))
         );
 
-        request.getSession().setAttribute("mensaje", "Voluntario registrado correctamente");
+        request.getSession().setAttribute("mensaje", "Institucion registrada correctamente");
         if (newId > 0) {
-            response.sendRedirect(request.getContextPath() + "/voluntarios?id=" + newId);
+            response.sendRedirect(request.getContextPath() + "/instituciones?id=" + newId);
             return;
         }
-        response.sendRedirect(request.getContextPath() + "/voluntarios");
+        response.sendRedirect(request.getContextPath() + "/instituciones");
     }
 
-    private void editarVoluntario(HttpServletRequest request, HttpServletResponse response) throws Exception {
-        Integer idVoluntario = parseInteger(request.getParameter("id_voluntario"));
+    private void editarInstitucion(HttpServletRequest request, HttpServletResponse response) throws Exception {
+        Integer idDonante = parseInteger(request.getParameter("id_donante"));
         String nombre = safe(request.getParameter("nombre"));
-        String telefono = safe(request.getParameter("telefono"));
         String email = safe(request.getParameter("email"));
-        String fechaIngreso = safe(request.getParameter("fecha_ingreso"));
+        String telefono = safe(request.getParameter("telefono"));
+        String direccion = safe(request.getParameter("direccion"));
+        String tipoDonante = safe(request.getParameter("tipo_donante"));
+        String idPais = safe(request.getParameter("id_pais"));
 
-        if (idVoluntario == null || nombre.isEmpty() || fechaIngreso.isEmpty()) {
+        if (idDonante == null || nombre.isEmpty() || idPais.isEmpty()) {
             request.getSession().setAttribute("mensaje", "Error: datos incompletos para editar");
-            response.sendRedirect(request.getContextPath() + "/voluntarios");
+            response.sendRedirect(request.getContextPath() + "/instituciones");
             return;
         }
 
-        voluntarioDAO.editar(
-                idVoluntario,
+        if (tipoDonante.isEmpty()) {
+            tipoDonante = "Institucion";
+        }
+
+        donanteDAO.editar(
+                idDonante,
                 nombre,
-                telefono,
                 email,
-                Date.valueOf(LocalDate.parse(fechaIngreso))
+                telefono,
+                direccion,
+                tipoDonante,
+                Integer.parseInt(idPais)
         );
 
-        request.getSession().setAttribute("mensaje", "Voluntario actualizado correctamente");
-        response.sendRedirect(request.getContextPath() + "/voluntarios?id=" + idVoluntario);
+        request.getSession().setAttribute("mensaje", "Institucion actualizada correctamente");
+        response.sendRedirect(request.getContextPath() + "/instituciones?id=" + idDonante);
     }
 
-    private void cambiarEstado(Integer id, boolean restaurar,
+    private void cambiarActivo(Integer id, boolean restaurar,
                                HttpServletRequest request, HttpServletResponse response) throws Exception {
         if (id == null) {
-            request.getSession().setAttribute("mensaje", "Error: id de voluntario invalido");
-            response.sendRedirect(request.getContextPath() + "/voluntarios");
+            request.getSession().setAttribute("mensaje", "Error: id de institucion invalido");
+            response.sendRedirect(request.getContextPath() + "/instituciones");
             return;
         }
 
-        voluntarioDAO.cambiarEstado(id, restaurar);
+        donanteDAO.cambiarActivo(id, restaurar);
 
         request.getSession().setAttribute("mensaje",
-                restaurar ? "Voluntario restaurado correctamente" : "Voluntario eliminado correctamente");
-        response.sendRedirect(request.getContextPath() + "/voluntarios?id=" + id);
+                restaurar ? "Institucion restaurada correctamente" : "Institucion eliminada correctamente");
+        response.sendRedirect(request.getContextPath() + "/instituciones?id=" + id);
     }
 
     private boolean isAuthenticated(HttpServletRequest request, HttpServletResponse response) throws IOException {
@@ -280,7 +289,7 @@ public class VoluntarioServlet {
         }
     }
 
-    private Integer toEstadoFilter(String situacion) {
+    private Integer toActivoFilter(String situacion) {
         if ("Inactivos".equalsIgnoreCase(situacion)) {
             return 0;
         }
@@ -298,3 +307,4 @@ public class VoluntarioServlet {
         return value == null ? "" : value;
     }
 }
+
