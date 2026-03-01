@@ -28,6 +28,10 @@ public class EntregaDonacion {
     @JoinColumn(name = "id_comunidad", nullable = false)
     private ComunidadVulnerable comunidad;
 
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_responsable")
+    private ComunidadResponsable responsable;
+
     @Column(name = "fecha_programada")
     private Timestamp fechaProgramada;
 
@@ -63,6 +67,14 @@ public class EntregaDonacion {
 
     public void setComunidad(ComunidadVulnerable comunidad) {
         this.comunidad = comunidad;
+    }
+
+    public ComunidadResponsable getResponsable() {
+        return responsable;
+    }
+
+    public void setResponsable(ComunidadResponsable responsable) {
+        this.responsable = responsable;
     }
 
     public Timestamp getFechaProgramada() {

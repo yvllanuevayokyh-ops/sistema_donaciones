@@ -1,6 +1,5 @@
 package com.donaciones.model;
 
-import java.sql.Date;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -12,13 +11,17 @@ import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
 @Entity
-@Table(name = "voluntario")
-public class Voluntario {
+@Table(name = "comunidad_responsable")
+public class ComunidadResponsable {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "id_voluntario")
-    private Integer idVoluntario;
+    @Column(name = "id_responsable")
+    private Integer idResponsable;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_comunidad", nullable = false)
+    private ComunidadVulnerable comunidad;
 
     @Column(name = "nombre", nullable = false, length = 150)
     private String nombre;
@@ -29,22 +32,26 @@ public class Voluntario {
     @Column(name = "email", length = 100)
     private String email;
 
-    @Column(name = "fecha_ingreso")
-    private Date fechaIngreso;
+    @Column(name = "cargo", length = 100)
+    private String cargo;
 
-    @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "id_campania")
-    private Campania campania;
+    @Column(name = "activo", nullable = false)
+    private Boolean activo;
 
-    @Column(name = "estado", nullable = false)
-    private Boolean estado;
-
-    public Integer getIdVoluntario() {
-        return idVoluntario;
+    public Integer getIdResponsable() {
+        return idResponsable;
     }
 
-    public void setIdVoluntario(Integer idVoluntario) {
-        this.idVoluntario = idVoluntario;
+    public void setIdResponsable(Integer idResponsable) {
+        this.idResponsable = idResponsable;
+    }
+
+    public ComunidadVulnerable getComunidad() {
+        return comunidad;
+    }
+
+    public void setComunidad(ComunidadVulnerable comunidad) {
+        this.comunidad = comunidad;
     }
 
     public String getNombre() {
@@ -71,27 +78,19 @@ public class Voluntario {
         this.email = email;
     }
 
-    public Date getFechaIngreso() {
-        return fechaIngreso;
+    public String getCargo() {
+        return cargo;
     }
 
-    public void setFechaIngreso(Date fechaIngreso) {
-        this.fechaIngreso = fechaIngreso;
+    public void setCargo(String cargo) {
+        this.cargo = cargo;
     }
 
-    public Campania getCampania() {
-        return campania;
+    public Boolean getActivo() {
+        return activo;
     }
 
-    public void setCampania(Campania campania) {
-        this.campania = campania;
-    }
-
-    public Boolean getEstado() {
-        return estado;
-    }
-
-    public void setEstado(Boolean estado) {
-        this.estado = estado;
+    public void setActivo(Boolean activo) {
+        this.activo = activo;
     }
 }

@@ -6,6 +6,8 @@
     <title>Inicio - Sistema Donaciones</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script th:src="@{/js/app.js}" defer></script>
 </head>
 <body>
 <div class="dashboard-shell">
@@ -25,17 +27,22 @@
                 <li class="active"><a th:href="@{/home}">Dashboard</a></li>
                 <li><a th:href="@{/donaciones}">Mis Donaciones</a></li>
                 <li><a th:href="@{/campanias}">Campanias</a></li>
+                <li><a th:href="@{/mi-perfil}">Mi Perfil</a></li>
+                <li><a th:href="@{/mis-reportes}">Reportes</a></li>
             </th:block>
 
             <th:block th:if="${!isDonanteView and isComunidadView}">
                 <li class="active"><a th:href="@{/home}">Dashboard</a></li>
                 <li><a th:href="@{/comunidades}">Comunidades</a></li>
                 <li><a th:href="@{/campanias}">Campanias</a></li>
+                <li><a th:href="@{/mi-perfil}">Mi Perfil</a></li>
+                <li><a th:href="@{/mis-reportes}">Reportes</a></li>
             </th:block>
 
             <th:block th:if="${!isDonanteView and !isComunidadView}">
                 <li class="active"><a th:href="@{/home}">Dashboard</a></li>
                 <li><a th:href="@{/roles}">Roles y Permisos</a></li>
+                <li><a th:href="@{/catalogos}">Catalogos</a></li>
                 <li><a th:href="@{/donaciones}">Donaciones</a></li>
                 <li><a th:href="@{/comunidades}">Comunidades</a></li>
                 <li><a th:href="@{/instituciones}">Instituciones</a></li>
@@ -124,19 +131,24 @@
         <th:block th:if="${!isDonanteView and isComunidadView}">
             <section class="stats">
                 <article class="stat">
-                    <h3>Comunidades</h3>
-                    <strong th:text="${totalComunidades}">0</strong>
-                    <small>Registros disponibles</small>
+                    <h3>Donaciones Recibidas</h3>
+                    <strong th:text="${totalDonacionesRecibidas}">0</strong>
+                    <small th:text="${comunidadNombre != null and !#strings.isEmpty(comunidadNombre) ? comunidadNombre : 'Comunidad'}">Comunidad</small>
+                </article>
+                <article class="stat">
+                    <h3>Monto Recibido</h3>
+                    <strong>S/ <span th:text="${#numbers.formatDecimal(montoRecibidoComunidad, 1, 'COMMA', 2, 'POINT')}">0.00</span></strong>
+                    <small>Donaciones entregadas</small>
+                </article>
+                <article class="stat">
+                    <h3>Entregas Completadas</h3>
+                    <strong th:text="${entregasEntregadas}">0</strong>
+                    <small><span th:text="${entregasTotales}">0</span> entregas registradas</small>
                 </article>
                 <article class="stat">
                     <h3>Beneficiarios</h3>
                     <strong th:text="${totalBeneficiarios}">0</strong>
                     <small>Poblacion estimada</small>
-                </article>
-                <article class="stat">
-                    <h3>Campanias Activas</h3>
-                    <strong th:text="${totalCampaniasActivas}">0</strong>
-                    <small>Seguimiento de apoyo</small>
                 </article>
             </section>
 
@@ -159,6 +171,21 @@
                     <p class="muted" th:if="${donacionesRecientes == null or #lists.isEmpty(donacionesRecientes)}">
                         No hay donaciones registradas.
                     </p>
+                </article>
+
+                <article class="panel quick">
+                    <h3>Grafico de Entregas</h3>
+                    <canvas id="communityChart"
+                            th:attr="data-entregadas=${entregasEntregadas},data-pendientes=${entregasTotales-entregasEntregadas}"
+                            height="180"></canvas>
+                    <div class="metric">
+                        <span>Actualizar perfil de comunidad</span>
+                        <strong><a th:href="@{/mi-perfil}">Ir a Mi Perfil</a></strong>
+                    </div>
+                    <div class="metric">
+                        <span>Ver reporte detallado</span>
+                        <strong><a th:href="@{/mis-reportes}">Ir a Reportes</a></strong>
+                    </div>
                 </article>
             </section>
         </th:block>
@@ -210,6 +237,9 @@
 
                 <article class="panel quick">
                     <h3>Resumen Rapido</h3>
+                    <canvas id="adminChart"
+                            th:attr="data-donaciones=${totalDonaciones},data-entregadas=${entregasEntregadas},data-comunidades=${totalComunidades}"
+                            height="160"></canvas>
                     <div class="metric">
                         <span>Voluntarios Activos</span>
                         <strong th:text="${voluntariosActivos}">0</strong>
@@ -227,5 +257,37 @@
         </th:block>
     </main>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    var adminCanvas = document.getElementById('adminChart');
+    if (adminCanvas && window.Chart) {
+        var d1 = parseInt(adminCanvas.dataset.donaciones || '0', 10);
+        var d2 = parseInt(adminCanvas.dataset.entregadas || '0', 10);
+        var d3 = parseInt(adminCanvas.dataset.comunidades || '0', 10);
+        new Chart(adminCanvas, {
+            type: 'bar',
+            data: {
+                labels: ['Donaciones', 'Entregadas', 'Comunidades'],
+                datasets: [{ data: [d1, d2, d3], backgroundColor: ['#0f7a18', '#2e9a43', '#7dbf88'] }]
+            },
+            options: { plugins: { legend: { display: false } }, responsive: true }
+        });
+    }
+
+    var communityCanvas = document.getElementById('communityChart');
+    if (communityCanvas && window.Chart) {
+        var entregadas = parseInt(communityCanvas.dataset.entregadas || '0', 10);
+        var pendientes = parseInt(communityCanvas.dataset.pendientes || '0', 10);
+        new Chart(communityCanvas, {
+            type: 'doughnut',
+            data: {
+                labels: ['Entregadas', 'Pendientes'],
+                datasets: [{ data: [entregadas, pendientes], backgroundColor: ['#0f7a18', '#f1b82d'] }]
+            },
+            options: { plugins: { legend: { position: 'bottom' } }, responsive: true }
+        });
+    }
+});
+</script>
 </body>
 </html>

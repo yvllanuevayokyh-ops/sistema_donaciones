@@ -224,6 +224,33 @@ public class RolesPermisosDAO {
         }
     }
 
+    public List<String[]> listarUsuariosGlobal() {
+        EntityManager em = JPAUtil.getInstance().createEntityManager();
+        try {
+            @SuppressWarnings("unchecked")
+            List<Object[]> rows = em.createNativeQuery(
+                    "SELECT u.id_usuario, u.nombre, u.usuario, COALESCE(r.nombre,''), u.estado " +
+                            "FROM usuario_sistema u " +
+                            "LEFT JOIN rol_usuario r ON r.id_rol = u.id_rol " +
+                            "ORDER BY u.id_usuario ASC"
+            ).getResultList();
+
+            List<String[]> result = new ArrayList<String[]>();
+            for (Object[] row : rows) {
+                result.add(new String[]{
+                        String.valueOf(toInt(row[0])),
+                        safe(row[1]),
+                        safe(row[2]),
+                        safe(row[3]),
+                        String.valueOf(toInt(row[4]))
+                });
+            }
+            return result;
+        } finally {
+            em.close();
+        }
+    }
+
     public boolean existeRolPorNombre(String nombre, Integer exceptId) {
         EntityManager em = JPAUtil.getInstance().createEntityManager();
         try {

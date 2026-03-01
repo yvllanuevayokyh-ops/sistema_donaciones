@@ -2,6 +2,8 @@ package com.donaciones.dao;
 
 import com.donaciones.model.ComunidadVulnerable;
 import com.donaciones.util.JPAUtil;
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -210,6 +212,74 @@ public class ComunidadDAO {
         }
     }
 
+    public ComunidadVulnerable buscarPorNombreExacto(String nombre) {
+        String filter = safe(nombre).trim();
+        if (filter.isEmpty()) {
+            return null;
+        }
+
+        EntityManager em = JPAUtil.getInstance().getEntityManager();
+        try {
+            @SuppressWarnings("unchecked")
+            List<ComunidadVulnerable> rows = em.createNativeQuery(
+                            "SELECT * FROM comunidad_vulnerable WHERE LOWER(nombre) = LOWER(?) LIMIT 1",
+                            ComunidadVulnerable.class
+                    ).setParameter(1, filter)
+                    .getResultList();
+            return rows.isEmpty() ? null : rows.get(0);
+        } finally {
+            em.close();
+        }
+    }
+
+    public List<Object[]> listarReporteRecepciones(Integer idComunidad) {
+        if (idComunidad == null) {
+            return new ArrayList<Object[]>();
+        }
+        EntityManager em = JPAUtil.getInstance().getEntityManager();
+        try {
+            @SuppressWarnings("unchecked")
+            List<Object[]> rows = em.createNativeQuery(
+                    "SELECT e.id_entrega, d.id_donacion, COALESCE(d.descripcion, ''), " +
+                            "COALESCE(dn.nombre, ''), COALESCE(v.nombre, 'Sin asignar'), " +
+                            "COALESCE(r.nombre, 'Sin asignar'), " +
+                            "COALESCE(ee.descripcion, ''), d.fecha_donacion, e.fecha_entrega, " +
+                            "COALESCE(d.monto, 0) " +
+                            "FROM entrega_donacion e " +
+                            "INNER JOIN donacion d ON d.id_donacion = e.id_donacion " +
+                            "INNER JOIN donante dn ON dn.id_donante = d.id_donante " +
+                            "LEFT JOIN estado_entrega ee ON ee.id_estado_entrega = e.id_estado_entrega " +
+                            "LEFT JOIN asignacion_voluntario_entrega ave ON ave.id_entrega = e.id_entrega " +
+                            "LEFT JOIN voluntario v ON v.id_voluntario = ave.id_voluntario " +
+                            "LEFT JOIN comunidad_responsable r ON r.id_responsable = e.id_responsable " +
+                            "WHERE e.id_comunidad = ? " +
+                            "ORDER BY COALESCE(e.fecha_entrega, e.fecha_programada) DESC, e.id_entrega DESC"
+            ).setParameter(1, idComunidad).getResultList();
+            return rows == null ? new ArrayList<Object[]>() : rows;
+        } finally {
+            em.close();
+        }
+    }
+
+    public BigDecimal montoRecibidoComunidad(Integer idComunidad) {
+        if (idComunidad == null) {
+            return BigDecimal.ZERO;
+        }
+        EntityManager em = JPAUtil.getInstance().getEntityManager();
+        try {
+            Object value = em.createNativeQuery(
+                    "SELECT COALESCE(SUM(COALESCE(d.monto,0)),0) " +
+                            "FROM entrega_donacion e " +
+                            "INNER JOIN donacion d ON d.id_donacion = e.id_donacion " +
+                            "INNER JOIN estado_entrega ee ON ee.id_estado_entrega = e.id_estado_entrega " +
+                            "WHERE e.id_comunidad = ? AND UPPER(ee.descripcion) = 'ENTREGADO'"
+            ).setParameter(1, idComunidad).getSingleResult();
+            return toBigDecimal(value);
+        } finally {
+            em.close();
+        }
+    }
+
     private int extractGeneratedId(StoredProcedureQuery sp) {
         @SuppressWarnings("unchecked")
         List<Object> result = sp.getResultList();
@@ -236,6 +306,23 @@ public class ComunidadDAO {
             return Integer.parseInt(String.valueOf(value));
         } catch (NumberFormatException ex) {
             return 0;
+        }
+    }
+
+    private BigDecimal toBigDecimal(Object value) {
+        if (value == null) {
+            return BigDecimal.ZERO;
+        }
+        if (value instanceof BigDecimal) {
+            return (BigDecimal) value;
+        }
+        if (value instanceof Number) {
+            return BigDecimal.valueOf(((Number) value).doubleValue());
+        }
+        try {
+            return new BigDecimal(String.valueOf(value));
+        } catch (NumberFormatException ex) {
+            return BigDecimal.ZERO;
         }
     }
 

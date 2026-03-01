@@ -4,9 +4,12 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.Table;
 
 @Entity
@@ -35,6 +38,10 @@ public class Campania {
 
     @Column(name = "monto_objetivo")
     private BigDecimal montoObjetivo;
+
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "id_comunidad")
+    private ComunidadVulnerable comunidad;
 
     @Column(name = "activo", nullable = false)
     private Boolean activo;
@@ -93,6 +100,14 @@ public class Campania {
 
     public void setMontoObjetivo(BigDecimal montoObjetivo) {
         this.montoObjetivo = montoObjetivo;
+    }
+
+    public ComunidadVulnerable getComunidad() {
+        return comunidad;
+    }
+
+    public void setComunidad(ComunidadVulnerable comunidad) {
+        this.comunidad = comunidad;
     }
 
     public Boolean getActivo() {

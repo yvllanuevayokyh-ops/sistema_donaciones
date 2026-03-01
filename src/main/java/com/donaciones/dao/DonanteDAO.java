@@ -218,6 +218,22 @@ public class DonanteDAO {
         }
     }
 
+    public boolean existeEmail(String email) {
+        String filter = safe(email).trim();
+        if (filter.isEmpty()) {
+            return false;
+        }
+        EntityManager em = JPAUtil.getInstance().getEntityManager();
+        try {
+            Object total = em.createNativeQuery(
+                    "SELECT COUNT(*) FROM donante WHERE LOWER(COALESCE(email,'')) = LOWER(?)"
+            ).setParameter(1, filter).getSingleResult();
+            return toInt(total) > 0;
+        } finally {
+            em.close();
+        }
+    }
+
     public String buscarNombrePorId(int idDonante) {
         Donante d = buscarPorId(idDonante);
         return d == null ? "" : safe(d.getNombre());

@@ -6,6 +6,7 @@
     <title>Comunidades - Sistema Donaciones</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script th:src="@{/js/app.js}" defer></script>
 </head>
 <body>
 <div class="dashboard-shell">
@@ -17,10 +18,13 @@
                 <li><a th:href="@{/home}">Dashboard</a></li>
                 <li class="active"><a th:href="@{/comunidades}">Comunidades</a></li>
                 <li><a th:href="@{/campanias}">Campanias</a></li>
+                <li><a th:href="@{/mi-perfil}">Mi Perfil</a></li>
+                <li><a th:href="@{/mis-reportes}">Reportes</a></li>
             </th:block>
             <th:block th:if="${!isRoleComunidad}">
                 <li><a th:href="@{/home}">Dashboard</a></li>
                 <li><a th:href="@{/roles}">Roles y Permisos</a></li>
+                <li><a th:href="@{/catalogos}">Catalogos</a></li>
                 <li><a th:href="@{/donaciones}">Donaciones</a></li>
                 <li class="active"><a th:href="@{/comunidades}">Comunidades</a></li>
                 <li><a th:href="@{/instituciones}">Instituciones</a></li>
@@ -40,10 +44,13 @@
                 <h1>Comunidades Vulnerables</h1>
                 <p class="muted">Registro y seguimiento de beneficiarios</p>
             </div>
-            <a th:if="${!isComunidadView}" class="btn-new" th:href="@{/comunidades(nuevo=1,q=${q},situacion=${situacion},page=${currentPage})}">+ Nueva Comunidad</a>
+            <div class="top-actions" th:if="${!isComunidadView}">
+                <a class="btn-new btn-alt" th:href="@{/export/excel(modulo='comunidades',q=${q},situacion=${situacion})}">Exportar Excel</a>
+                <a class="btn-new" th:href="@{/comunidades(nuevo=1,q=${q},situacion=${situacion},page=${currentPage})}">+ Nueva Comunidad</a>
+            </div>
         </div>
 
-        <form method="get" th:action="@{/comunidades}" class="toolbar toolbar-simple">
+        <form th:if="${!showForm}" method="get" th:action="@{/comunidades}" class="toolbar toolbar-simple" data-dynamic-search="true">
             <input type="hidden" name="page" value="1">
             <input type="text" name="q" th:value="${q}" placeholder="Buscar por nombre o ubicacion">
             <select name="situacion">
@@ -69,6 +76,13 @@
                             <option value="">Selecciona pais</option>
                             <option th:each="p : ${paises}" th:value="${p.idPais}" th:text="${p.nombre}"
                                     th:selected="${edicion != null and edicion.pais != null and edicion.pais.idPais == p.idPais}"></option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Estado</label>
+                        <select name="estado">
+                            <option value="1" th:selected="${edicion == null or edicion.activo}">Activo</option>
+                            <option value="0" th:selected="${edicion != null and !edicion.activo}">Inactivo</option>
                         </select>
                     </div>
                     <div class="full"><label>Descripcion</label><textarea name="descripcion" rows="3" th:text="${edicion != null ? edicion.descripcion : ''}"></textarea></div>

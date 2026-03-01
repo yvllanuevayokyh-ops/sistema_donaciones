@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Catalogos - Sistema Donaciones</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<div class="dashboard-shell">
+    <aside class="sidebar">
+        <div><h2>Donaciones</h2><p>Sistema de Gestion</p></div>
+        <div class="user-box"><strong th:text="${usuarioNombre}">Usuario</strong><span th:text="${usuarioRol}">Rol</span></div>
+        <ul class="menu">
+            <li><a th:href="@{/home}">Dashboard</a></li>
+            <li><a th:href="@{/roles}">Roles y Permisos</a></li>
+            <li class="active"><a th:href="@{/catalogos}">Catalogos</a></li>
+            <li><a th:href="@{/donaciones}">Donaciones</a></li>
+            <li><a th:href="@{/comunidades}">Comunidades</a></li>
+            <li><a th:href="@{/instituciones}">Instituciones</a></li>
+            <li><a th:href="@{/voluntarios}">Voluntarios</a></li>
+            <li><a th:href="@{/campanias}">Campanias</a></li>
+            <li><a th:href="@{/entregas}">Entregas</a></li>
+            <li><a th:href="@{/finanzas}">Finanzas</a></li>
+        </ul>
+        <a class="logout" th:href="@{/logout}">Cerrar Sesion</a>
+    </aside>
+
+    <main class="main">
+        <p th:if="${flashMessage}" class="flash" th:classappend="${flashError} ? ' flash-error' : ' flash-ok'" th:text="${flashMessage}"></p>
+        <div class="top-title">
+            <div>
+                <h1>Catalogos - Auditoria</h1>
+                <p class="muted">Recursos y roles eliminados de catalogos. Se mantiene auditoria del sistema.</p>
+            </div>
+            <a class="btn-new btn-alt" th:href="@{/export/excel(modulo='donaciones')}">Exportar Excel</a>
+        </div>
+
+        <form method="get" th:action="@{/catalogos}" class="toolbar" data-dynamic-search="true">
+            <input type="text" name="q" th:value="${q}" placeholder="Buscar por usuario o detalle">
+            <select name="modulo">
+                <option value="" th:selected="${modulo == ''}">Modulo: Todos</option>
+                <option value="DONACIONES" th:selected="${modulo == 'DONACIONES'}">Donaciones</option>
+                <option value="COMUNIDADES" th:selected="${modulo == 'COMUNIDADES'}">Comunidades</option>
+                <option value="INSTITUCIONES" th:selected="${modulo == 'INSTITUCIONES'}">Instituciones</option>
+                <option value="VOLUNTARIOS" th:selected="${modulo == 'VOLUNTARIOS'}">Voluntarios</option>
+                <option value="CAMPANIAS" th:selected="${modulo == 'CAMPANIAS'}">Campanias</option>
+                <option value="ENTREGAS" th:selected="${modulo == 'ENTREGAS'}">Entregas</option>
+                <option value="FINANZAS" th:selected="${modulo == 'FINANZAS'}">Finanzas</option>
+                <option value="LOGIN" th:selected="${modulo == 'LOGIN'}">Login</option>
+            </select>
+            <select name="accion">
+                <option value="" th:selected="${accion == ''}">Accion: Todas</option>
+                <option value="CREATE" th:selected="${accion == 'CREATE'}">CREATE</option>
+                <option value="UPDATE" th:selected="${accion == 'UPDATE'}">UPDATE</option>
+                <option value="DELETE" th:selected="${accion == 'DELETE'}">DELETE</option>
+                <option value="RESTORE" th:selected="${accion == 'RESTORE'}">RESTORE</option>
+                <option value="LOGIN" th:selected="${accion == 'LOGIN'}">LOGIN</option>
+                <option value="REGISTER" th:selected="${accion == 'REGISTER'}">REGISTER</option>
+                <option value="EXPORT" th:selected="${accion == 'EXPORT'}">EXPORT</option>
+            </select>
+            <button type="submit">Filtrar</button>
+        </form>
+
+        <section class="panel" style="margin-top:14px;">
+            <h3>Auditoria del Sistema</h3>
+            <div class="table-wrap">
+                <table class="table-fin">
+                    <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Fecha</th>
+                        <th>Usuario</th>
+                        <th>Rol</th>
+                        <th>Modulo</th>
+                        <th>Accion</th>
+                        <th>Detalle</th>
+                        <th>HTTP</th>
+                    </tr>
+                    </thead>
+                    <tbody>
+                    <tr th:if="${auditoriaRows == null or #lists.isEmpty(auditoriaRows)}"><td colspan="8" class="muted">Sin eventos.</td></tr>
+                    <tr th:each="row : ${auditoriaRows}">
+                        <td th:text="${row[0]}">0</td>
+                        <td th:text="${row[1]}">-</td>
+                        <td th:text="${row[2]}">-</td>
+                        <td th:text="${row[3]}">-</td>
+                        <td th:text="${row[4]}">-</td>
+                        <td><span class="badge badge-pendiente" th:text="${row[5]}">-</span></td>
+                        <td th:text="${row[6]}">-</td>
+                        <td th:text="${row[7]}">200</td>
+                    </tr>
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+</div>
+</body>
+</html>

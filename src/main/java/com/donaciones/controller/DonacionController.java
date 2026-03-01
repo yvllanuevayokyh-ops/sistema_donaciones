@@ -12,7 +12,9 @@ import java.math.BigDecimal;
 import java.sql.Date;
 import java.time.LocalDate;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Controller;
@@ -51,6 +53,13 @@ public class DonacionController {
         if (situacion.isEmpty()) {
             situacion = "Activos";
         }
+        String tipoDonante = safe(request.getParameter("tipoDonante")).trim();
+        if (tipoDonante.isEmpty()) {
+            tipoDonante = "Todos";
+        }
+        if (donanteView) {
+            tipoDonante = "Todos";
+        }
 
         int currentPage = parseInt(request.getParameter("page"), 1);
         if (currentPage < 1) {
@@ -75,6 +84,8 @@ public class DonacionController {
         boolean perfilDonanteVinculado = true;
         String donanteActualNombre = "";
         Integer idDonanteActual = null;
+        Map<Integer, String> entregadorPorDonacion = new LinkedHashMap<Integer, String>();
+        String entregadorDetalle = "";
 
         try {
             campanias = safeList(campaniaDAO.listarActivas());
@@ -110,12 +121,14 @@ public class DonacionController {
                     if (selectedId == null && !donaciones.isEmpty()) {
                         selectedId = donaciones.get(0).getIdDonacion();
                     }
+                    entregadorPorDonacion = donacionDAO.obtenerEntregadorPorDonaciones(extractIds(donaciones));
                     if (selectedId != null) {
                         detalle = donacionDAO.buscarDetallePorDonante(selectedId, idDonanteActual);
                         if (detalle == null && !donaciones.isEmpty()) {
                             selectedId = donaciones.get(0).getIdDonacion();
                             detalle = donacionDAO.buscarDetallePorDonante(selectedId, idDonanteActual);
                         }
+                        entregadorDetalle = entregadorPorDonacion.getOrDefault(selectedId, "");
                     }
                 } else {
                     perfilDonanteVinculado = false;
@@ -124,15 +137,16 @@ public class DonacionController {
                     totalPages = 1;
                 }
             } else {
-                ResultadoPaginado<Donacion> resultado = donacionDAO.buscarYPaginar(
-                        q, estado, filtroActivo, currentPage, PAGE_SIZE
+                    ResultadoPaginado<Donacion> resultado = donacionDAO.buscarYPaginar(
+                        q, estado, filtroActivo, tipoDonante, currentPage, PAGE_SIZE
                 );
                 if (currentPage > resultado.getTotalPaginas()) {
                     currentPage = Math.max(1, resultado.getTotalPaginas());
-                    resultado = donacionDAO.buscarYPaginar(q, estado, filtroActivo, currentPage, PAGE_SIZE);
+                    resultado = donacionDAO.buscarYPaginar(q, estado, filtroActivo, tipoDonante, currentPage, PAGE_SIZE);
                 }
 
                 donaciones = safeList(resultado.getDatos());
+                entregadorPorDonacion = donacionDAO.obtenerEntregadorPorDonaciones(extractIds(donaciones));
                 totalRows = resultado.getTotalRegistros();
                 totalPages = Math.max(1, resultado.getTotalPaginas());
 
@@ -146,6 +160,7 @@ public class DonacionController {
                 }
                 if (selectedId != null) {
                     detalle = donacionDAO.buscarDetalle(selectedId);
+                    entregadorDetalle = entregadorPorDonacion.getOrDefault(selectedId, "");
                 }
                 if (editarId != null) {
                     edicion = donacionDAO.buscarDetalle(editarId);
@@ -171,6 +186,9 @@ public class DonacionController {
         request.setAttribute("q", q);
         request.setAttribute("estado", estado);
         request.setAttribute("situacion", situacion);
+        request.setAttribute("tipoDonante", tipoDonante);
+        request.setAttribute("entregadorPorDonacion", entregadorPorDonacion);
+        request.setAttribute("entregadorDetalle", entregadorDetalle);
         request.setAttribute("hoy", LocalDate.now().toString());
         request.setAttribute("totalRows", totalRows);
         request.setAttribute("currentPage", currentPage);
@@ -252,20 +270,26 @@ public class DonacionController {
         String monto = safe(request.getParameter("monto"));
         String descripcion = safe(request.getParameter("descripcion"));
 
-        if (idDonante.isEmpty() || tipoDonacion.isEmpty() || estadoDonacion.isEmpty()
+        if (idDonante.isEmpty() || idCampania.isEmpty() || tipoDonacion.isEmpty() || estadoDonacion.isEmpty()
                 || fechaDonacion.isEmpty() || descripcion.isEmpty()) {
             request.getSession().setAttribute("mensaje", "Error: completa los campos requeridos");
             response.sendRedirect(request.getContextPath() + "/donaciones");
             return;
         }
+        BigDecimal montoParsed = parseDecimalOrNull(monto);
+        if ("Monetaria".equalsIgnoreCase(tipoDonacion) && montoParsed == null) {
+            request.getSession().setAttribute("mensaje", "Error: monto es obligatorio para donaciones monetarias");
+            response.sendRedirect(request.getContextPath() + "/donaciones?nuevo=1");
+            return;
+        }
 
         int newId = donacionDAO.crear(
                 Integer.parseInt(idDonante),
-                idCampania.isEmpty() ? null : Integer.parseInt(idCampania),
+                Integer.parseInt(idCampania),
                 tipoDonacion,
                 estadoDonacion,
                 Date.valueOf(LocalDate.parse(fechaDonacion)),
-                parseDecimalOrNull(monto),
+                montoParsed,
                 descripcion
         );
 
@@ -287,21 +311,27 @@ public class DonacionController {
         String monto = safe(request.getParameter("monto"));
         String descripcion = safe(request.getParameter("descripcion"));
 
-        if (idDonacion == null || idDonante.isEmpty() || tipoDonacion.isEmpty() || estadoDonacion.isEmpty()
+        if (idDonacion == null || idDonante.isEmpty() || idCampania.isEmpty() || tipoDonacion.isEmpty() || estadoDonacion.isEmpty()
                 || fechaDonacion.isEmpty() || descripcion.isEmpty()) {
             request.getSession().setAttribute("mensaje", "Error: datos incompletos para editar");
             response.sendRedirect(request.getContextPath() + "/donaciones");
+            return;
+        }
+        BigDecimal montoParsed = parseDecimalOrNull(monto);
+        if ("Monetaria".equalsIgnoreCase(tipoDonacion) && montoParsed == null) {
+            request.getSession().setAttribute("mensaje", "Error: monto es obligatorio para donaciones monetarias");
+            response.sendRedirect(request.getContextPath() + "/donaciones?editarId=" + idDonacion);
             return;
         }
 
         donacionDAO.editar(
                 idDonacion,
                 Integer.parseInt(idDonante),
-                idCampania.isEmpty() ? null : Integer.parseInt(idCampania),
+                Integer.parseInt(idCampania),
                 tipoDonacion,
                 estadoDonacion,
                 Date.valueOf(LocalDate.parse(fechaDonacion)),
-                parseDecimalOrNull(monto),
+                montoParsed,
                 descripcion
         );
 
@@ -397,6 +427,19 @@ public class DonacionController {
 
     private <T> List<T> safeList(List<T> rows) {
         return rows == null ? new ArrayList<T>() : rows;
+    }
+
+    private List<Integer> extractIds(List<Donacion> rows) {
+        List<Integer> ids = new ArrayList<Integer>();
+        if (rows == null) {
+            return ids;
+        }
+        for (Donacion d : rows) {
+            if (d != null && d.getIdDonacion() != null) {
+                ids.add(d.getIdDonacion());
+            }
+        }
+        return ids;
     }
 
     private String safe(String value) {

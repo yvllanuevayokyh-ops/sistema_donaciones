@@ -1,6 +1,10 @@
 package com.donaciones.controller;
 
+import com.donaciones.dao.CampaniaDAO;
+import com.donaciones.dao.ComunidadDAO;
 import com.donaciones.dao.FinanzasDAO;
+import com.donaciones.model.Campania;
+import com.donaciones.model.ComunidadVulnerable;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.time.LocalDate;
@@ -28,6 +32,8 @@ import org.springframework.web.bind.annotation.GetMapping;
 public class FinanzasController {
 
     private final FinanzasDAO finanzasDAO = new FinanzasDAO();
+    private final CampaniaDAO campaniaDAO = new CampaniaDAO();
+    private final ComunidadDAO comunidadDAO = new ComunidadDAO();
 
     @GetMapping("/finanzas")
     public String doGet(HttpServletRequest request, HttpServletResponse response)
@@ -50,6 +56,10 @@ public class FinanzasController {
         String ultimaEntrega = formatDateTime(fechaReporteDateTime);
         List<Object[]> porCampania = new ArrayList<Object[]>();
         List<Object[]> porComunidad = new ArrayList<Object[]>();
+        List<Campania> campanias = new ArrayList<Campania>();
+        List<ComunidadVulnerable> comunidades = new ArrayList<ComunidadVulnerable>();
+        Integer idCampania = parseInteger(request.getParameter("id_campania"));
+        Integer idComunidad = parseInteger(request.getParameter("id_comunidad"));
 
         try {
             Object[] resumen = finanzasDAO.resumenGeneral();
@@ -67,6 +77,15 @@ public class FinanzasController {
 
             porCampania = safeList(finanzasDAO.resumenPorCampania());
             porComunidad = safeList(finanzasDAO.resumenPorComunidad());
+            campanias = safeList(campaniaDAO.listarActivas());
+            comunidades = safeList(comunidadDAO.listarComunidadesCatalogo());
+
+            if (idCampania != null) {
+                porCampania = filtrarPorId(porCampania, idCampania);
+            }
+            if (idComunidad != null) {
+                porComunidad = filtrarPorId(porComunidad, idComunidad);
+            }
         } catch (Exception ex) {
             ex.printStackTrace();
             request.getSession().setAttribute("mensaje", "Error: no se pudo cargar finanzas");
@@ -81,6 +100,10 @@ public class FinanzasController {
         request.setAttribute("ultimaEntrega", ultimaEntrega);
         request.setAttribute("porCampania", porCampania);
         request.setAttribute("porComunidad", porComunidad);
+        request.setAttribute("campanias", campanias);
+        request.setAttribute("comunidades", comunidades);
+        request.setAttribute("idCampania", idCampania);
+        request.setAttribute("idComunidad", idComunidad);
         request.setAttribute("fechaReporteDateTime", fechaReporteDateTime);
         request.setAttribute("ordenCampania", "Mayor recaudado");
         request.setAttribute("ordenComunidad", "Mayor monto recibido");
@@ -102,6 +125,9 @@ public class FinanzasController {
             return;
         }
 
+        Integer idCampania = parseInteger(request.getParameter("id_campania"));
+        Integer idComunidad = parseInteger(request.getParameter("id_comunidad"));
+
         Object[] resumen;
         List<Object[]> porCampania;
         List<Object[]> porComunidad;
@@ -109,6 +135,12 @@ public class FinanzasController {
             resumen = finanzasDAO.resumenGeneral();
             porCampania = safeList(finanzasDAO.resumenPorCampania());
             porComunidad = safeList(finanzasDAO.resumenPorComunidad());
+            if (idCampania != null) {
+                porCampania = filtrarPorId(porCampania, idCampania);
+            }
+            if (idComunidad != null) {
+                porComunidad = filtrarPorId(porComunidad, idComunidad);
+            }
         } catch (Exception ex) {
             ex.printStackTrace();
             request.getSession().setAttribute("mensaje", "Error: no se pudo generar el Excel de finanzas");
@@ -413,6 +445,30 @@ public class FinanzasController {
             }
         }
         return null;
+    }
+
+    private Integer parseInteger(String value) {
+        try {
+            if (value == null || value.isBlank()) {
+                return null;
+            }
+            return Integer.parseInt(value);
+        } catch (NumberFormatException ex) {
+            return null;
+        }
+    }
+
+    private List<Object[]> filtrarPorId(List<Object[]> rows, Integer id) {
+        List<Object[]> filtrado = new ArrayList<Object[]>();
+        if (rows == null || id == null) {
+            return filtrado;
+        }
+        for (Object[] row : rows) {
+            if (row != null && row.length > 0 && toInt(row[0]) == id) {
+                filtrado.add(row);
+            }
+        }
+        return filtrado;
     }
 }
 

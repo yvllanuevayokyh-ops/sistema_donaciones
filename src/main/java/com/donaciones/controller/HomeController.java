@@ -1,7 +1,10 @@
 package com.donaciones.controller;
 
+import com.donaciones.dao.ComunidadDAO;
 import com.donaciones.dao.DashboardDAO;
 import com.donaciones.dao.DonanteDAO;
+import com.donaciones.model.ComunidadVulnerable;
+import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,6 +18,7 @@ public class HomeController {
 
     private final DashboardDAO dashboardDAO = new DashboardDAO();
     private final DonanteDAO donanteDAO = new DonanteDAO();
+    private final ComunidadDAO comunidadDAO = new ComunidadDAO();
 
     @GetMapping("/home")
     public String mostrarHome(HttpSession session, Model model) {
@@ -57,14 +61,55 @@ public class HomeController {
                     dashboardData.donacionesRecientes = dashboardDAO.donacionesRecientesPorDonante(idDonante);
                 }
             } else if (comunidadView) {
-                dashboardData.totalComunidades = dashboardDAO.contar("SELECT COUNT(*) FROM comunidad_vulnerable");
-                dashboardData.totalBeneficiarios = dashboardDAO.contar(
-                        "SELECT COALESCE(SUM(cantidad_beneficiarios),0) FROM comunidad_vulnerable"
-                );
-                dashboardData.totalCampaniasActivas = dashboardDAO.contar(
-                        "SELECT COUNT(*) FROM campania WHERE activo = 1 AND UPPER(estado) = 'ACTIVA'"
-                );
-                dashboardData.donacionesRecientes = dashboardDAO.donacionesRecientes();
+                ComunidadVulnerable comunidadActual = comunidadDAO.buscarPorNombreExacto(usuarioNombre);
+                if (comunidadActual != null && comunidadActual.getIdComunidad() != null) {
+                    dashboardData.idComunidadActual = comunidadActual.getIdComunidad();
+                    dashboardData.comunidadNombre = safe(comunidadActual.getNombre());
+                    dashboardData.totalBeneficiarios = comunidadActual.getCantidadBeneficiarios() != null
+                            ? comunidadActual.getCantidadBeneficiarios() : 0;
+                    dashboardData.totalDonacionesRecibidas = comunidadDAO.contarDonacionesRecibidas(
+                            comunidadActual.getIdComunidad()
+                    );
+                    dashboardData.montoRecibidoComunidad = comunidadDAO.montoRecibidoComunidad(
+                            comunidadActual.getIdComunidad()
+                    );
+                    dashboardData.totalCampaniasActivas = dashboardDAO.contarPorId(
+                            "SELECT COUNT(*) FROM campania c WHERE c.activo = 1 AND c.id_comunidad = ?",
+                            comunidadActual.getIdComunidad()
+                    );
+
+                    List<Object[]> reporte = comunidadDAO.listarReporteRecepciones(comunidadActual.getIdComunidad());
+                    dashboardData.entregasTotales = reporte == null ? 0 : reporte.size();
+                    dashboardData.entregasEntregadas = 0;
+                    dashboardData.donacionesRecientes = new ArrayList<String[]>();
+                    if (reporte != null) {
+                        int limit = Math.min(5, reporte.size());
+                        for (int i = 0; i < reporte.size(); i++) {
+                            Object[] row = reporte.get(i);
+                            if (row != null && row.length > 6 && "ENTREGADO".equalsIgnoreCase(safe(row[6]))) {
+                                dashboardData.entregasEntregadas++;
+                            }
+                            if (i < limit && row != null && row.length >= 10) {
+                                dashboardData.donacionesRecientes.add(new String[]{
+                                        "DON-" + safe(row[1]),
+                                        "S/ " + safe(row[9]),
+                                        safe(row[6]),
+                                        safe(row[8]),
+                                        safe(row[3])
+                                });
+                            }
+                        }
+                    }
+                } else {
+                    dashboardData.totalComunidades = dashboardDAO.contar("SELECT COUNT(*) FROM comunidad_vulnerable");
+                    dashboardData.totalBeneficiarios = dashboardDAO.contar(
+                            "SELECT COALESCE(SUM(cantidad_beneficiarios),0) FROM comunidad_vulnerable"
+                    );
+                    dashboardData.totalCampaniasActivas = dashboardDAO.contar(
+                            "SELECT COUNT(*) FROM campania WHERE activo = 1 AND UPPER(estado) = 'ACTIVA'"
+                    );
+                    dashboardData.donacionesRecientes = dashboardDAO.donacionesRecientes();
+                }
             } else {
                 dashboardData.totalDonaciones = dashboardDAO.contar("SELECT COUNT(*) FROM donacion");
                 dashboardData.totalComunidades = dashboardDAO.contar("SELECT COUNT(*) FROM comunidad_vulnerable");
@@ -121,6 +166,12 @@ public class HomeController {
         model.addAttribute("misDonaciones", dashboardData.misDonaciones);
         model.addAttribute("misDonacionesPendientes", dashboardData.misDonacionesPendientes);
         model.addAttribute("montoDonado", dashboardData.montoDonado);
+        model.addAttribute("idComunidadActual", dashboardData.idComunidadActual);
+        model.addAttribute("comunidadNombre", dashboardData.comunidadNombre);
+        model.addAttribute("totalDonacionesRecibidas", dashboardData.totalDonacionesRecibidas);
+        model.addAttribute("montoRecibidoComunidad", dashboardData.montoRecibidoComunidad);
+        model.addAttribute("entregasTotales", dashboardData.entregasTotales);
+        model.addAttribute("entregasEntregadas", dashboardData.entregasEntregadas);
 
         consumeFlash(session, model);
         return "home/index";
@@ -134,8 +185,8 @@ public class HomeController {
         return "Comunidad".equalsIgnoreCase(rol);
     }
 
-    private String safe(String value) {
-        return value == null ? "" : value;
+    private String safe(Object value) {
+        return value == null ? "" : String.valueOf(value);
     }
 
     private void consumeFlash(HttpSession session, Model model) {
@@ -163,6 +214,10 @@ public class HomeController {
         int entregasEntregadas;
         int campaniasCompletadas;
         int totalCampanias;
+        int idComunidadActual;
+        String comunidadNombre = "";
+        int totalDonacionesRecibidas;
+        BigDecimal montoRecibidoComunidad = BigDecimal.ZERO;
         int misDonaciones;
         int misDonacionesPendientes;
         String montoDonado = "0.00";

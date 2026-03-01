@@ -21,19 +21,67 @@
     </section>
 
     <section class="card">
-        <h3>Iniciar Sesion</h3>
-        <p class="muted">Ingresa tus credenciales para acceder</p>
+        <h3 th:text="${showRegistro} ? 'Registro' : 'Iniciar Sesion'">Iniciar Sesion</h3>
+        <p class="muted" th:text="${showRegistro} ? 'Crea tu cuenta de persona o institucion' : 'Ingresa tus credenciales para acceder'">Ingresa tus credenciales para acceder</p>
+        <div class="row-actions" style="margin-top:8px;">
+            <a class="btn-mini btn-edit" th:href="@{/login}" th:classappend="${!showRegistro} ? ' current' : ''">Iniciar Sesion</a>
+            <a class="btn-mini btn-edit" th:href="@{/login(registro=1)}" th:classappend="${showRegistro} ? ' current' : ''">Registrarme</a>
+        </div>
 
         <p th:if="${flashMessage}" class="flash" th:classappend="${flashError} ? ' flash-error' : ' flash-ok'" th:text="${flashMessage}"></p>
         <p th:if="${error == '1'}" class="error">Credenciales invalidas</p>
         <p th:if="${error == 'db'}" class="error">Error de conexion con base de datos</p>
 
-        <form method="post" th:action="@{/login}">
+        <form th:if="${!showRegistro}" method="post" th:action="@{/login}">
             <label>Email</label>
             <input type="email" name="email" required th:value="${email}">
             <label>Contrasena</label>
             <input type="password" name="password" required>
             <button type="submit">Iniciar Sesion</button>
+        </form>
+
+        <form th:if="${showRegistro}" method="post" th:action="@{/registro}" class="form-grid" style="margin-top:10px;">
+            <div class="full">
+                <label>Nombre</label>
+                <input type="text" name="nombre" required>
+            </div>
+            <div>
+                <label>Tipo</label>
+                <select name="tipo_donante" required>
+                    <option value="Institucion">Institucion</option>
+                    <option value="Persona">Persona Natural</option>
+                </select>
+            </div>
+            <div>
+                <label>Pais</label>
+                <select name="id_pais" required>
+                    <option value="">Selecciona pais</option>
+                    <option th:each="p : ${paises}" th:value="${p.idPais}" th:text="${p.nombre}"></option>
+                </select>
+            </div>
+            <div>
+                <label>Email</label>
+                <input type="email" name="email" required>
+            </div>
+            <div>
+                <label>Telefono</label>
+                <input type="text" name="telefono">
+            </div>
+            <div class="full">
+                <label>Direccion</label>
+                <input type="text" name="direccion">
+            </div>
+            <div>
+                <label>Contrasena</label>
+                <input type="password" name="password" required minlength="6">
+            </div>
+            <div>
+                <label>Confirmar contrasena</label>
+                <input type="password" name="confirm_password" required minlength="6">
+            </div>
+            <div class="full">
+                <button type="submit">Crear Cuenta</button>
+            </div>
         </form>
 
     </section>

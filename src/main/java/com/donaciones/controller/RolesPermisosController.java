@@ -39,6 +39,7 @@ public class RolesPermisosController {
 
         List<String[]> roles = new ArrayList<String[]>();
         List<String[]> permisosRol = new ArrayList<String[]>();
+        List<String[]> usuariosGlobal = new ArrayList<String[]>();
         String[] detalle = null;
         String[] edicion = null;
         int totalRoles = 0;
@@ -56,6 +57,7 @@ public class RolesPermisosController {
             }
             int offset = (currentPage - 1) * PAGE_SIZE;
             roles = dao.listarRoles(q, offset, PAGE_SIZE);
+            usuariosGlobal = dao.listarUsuariosGlobal();
             totalPermisos = dao.contarPermisos();
             totalAsignaciones = dao.contarAsignaciones();
 
@@ -79,6 +81,7 @@ public class RolesPermisosController {
 
         request.setAttribute("roles", roles);
         request.setAttribute("permisosRol", permisosRol);
+        request.setAttribute("usuariosGlobal", usuariosGlobal);
         request.setAttribute("detalle", detalle);
         request.setAttribute("edicion", edicion);
         request.setAttribute("selectedId", selectedId);

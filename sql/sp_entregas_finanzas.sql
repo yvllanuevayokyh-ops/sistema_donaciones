@@ -4,7 +4,7 @@
 CREATE TABLE IF NOT EXISTS estado_entrega (
     id_estado_entrega INT AUTO_INCREMENT PRIMARY KEY,
     descripcion VARCHAR(50) NOT NULL
-);
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT IGNORE INTO estado_entrega (id_estado_entrega, descripcion) VALUES
 (1, 'Programado'),
@@ -12,18 +12,55 @@ INSERT IGNORE INTO estado_entrega (id_estado_entrega, descripcion) VALUES
 (3, 'Entregado'),
 (4, 'Cancelado');
 
+CREATE TABLE IF NOT EXISTS comunidad_responsable (
+    id_responsable INT AUTO_INCREMENT PRIMARY KEY,
+    id_comunidad INT NOT NULL,
+    nombre VARCHAR(150) NOT NULL,
+    telefono VARCHAR(20) NULL,
+    email VARCHAR(100) NULL,
+    cargo VARCHAR(100) NULL,
+    activo TINYINT(1) NOT NULL DEFAULT 1,
+    KEY idx_responsable_comunidad (id_comunidad),
+    CONSTRAINT fk_responsable_comunidad
+        FOREIGN KEY (id_comunidad) REFERENCES comunidad_vulnerable(id_comunidad)
+        ON UPDATE CASCADE
+        ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 CREATE TABLE IF NOT EXISTS entrega_donacion (
     id_entrega INT AUTO_INCREMENT PRIMARY KEY,
     id_donacion INT NOT NULL,
     id_comunidad INT NOT NULL,
+    id_responsable INT NULL,
     fecha_programada DATETIME,
     fecha_entrega DATETIME,
     id_estado_entrega INT NOT NULL DEFAULT 1,
     observaciones TEXT,
     FOREIGN KEY (id_donacion) REFERENCES donacion(id_donacion),
     FOREIGN KEY (id_comunidad) REFERENCES comunidad_vulnerable(id_comunidad),
+    FOREIGN KEY (id_responsable) REFERENCES comunidad_responsable(id_responsable),
     FOREIGN KEY (id_estado_entrega) REFERENCES estado_entrega(id_estado_entrega)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+ALTER TABLE entrega_donacion
+    ADD COLUMN IF NOT EXISTS id_responsable INT NULL;
+
+SET @fk_entrega_responsable_exists := (
+    SELECT COUNT(*)
+    FROM information_schema.TABLE_CONSTRAINTS
+    WHERE CONSTRAINT_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'entrega_donacion'
+      AND CONSTRAINT_NAME = 'fk_entrega_donacion_responsable'
+      AND CONSTRAINT_TYPE = 'FOREIGN KEY'
 );
+SET @sql_add_fk_entrega_responsable := IF(
+    @fk_entrega_responsable_exists = 0,
+    'ALTER TABLE entrega_donacion ADD CONSTRAINT fk_entrega_donacion_responsable FOREIGN KEY (id_responsable) REFERENCES comunidad_responsable(id_responsable) ON UPDATE CASCADE ON DELETE SET NULL',
+    'SELECT 1'
+);
+PREPARE stmt_fk_entrega_responsable FROM @sql_add_fk_entrega_responsable;
+EXECUTE stmt_fk_entrega_responsable;
+DEALLOCATE PREPARE stmt_fk_entrega_responsable;
 
 ALTER TABLE entrega_donacion
     MODIFY COLUMN fecha_programada DATETIME NULL;
@@ -54,6 +91,7 @@ BEGIN
         e.id_entrega,
         e.id_donacion,
         e.id_comunidad,
+        e.id_responsable,
         e.fecha_programada,
         e.fecha_entrega,
         e.id_estado_entrega,
@@ -100,6 +138,7 @@ BEGIN
         e.id_entrega,
         e.id_donacion,
         e.id_comunidad,
+        e.id_responsable,
         e.fecha_programada,
         e.fecha_entrega,
         e.id_estado_entrega,
@@ -112,6 +151,7 @@ END$$
 CREATE PROCEDURE sp_entrega_crear(
     IN p_id_donacion INT,
     IN p_id_comunidad INT,
+    IN p_id_responsable INT,
     IN p_id_estado_entrega INT,
     IN p_fecha_programada DATETIME,
     IN p_fecha_entrega DATETIME,
@@ -119,10 +159,10 @@ CREATE PROCEDURE sp_entrega_crear(
 )
 BEGIN
     INSERT INTO entrega_donacion (
-        id_donacion, id_comunidad, id_estado_entrega,
+        id_donacion, id_comunidad, id_responsable, id_estado_entrega,
         fecha_programada, fecha_entrega, observaciones
     ) VALUES (
-        p_id_donacion, p_id_comunidad, p_id_estado_entrega,
+        p_id_donacion, p_id_comunidad, p_id_responsable, p_id_estado_entrega,
         p_fecha_programada, p_fecha_entrega, p_observaciones
     );
     SELECT LAST_INSERT_ID() AS new_id;
@@ -132,6 +172,7 @@ CREATE PROCEDURE sp_entrega_editar(
     IN p_id_entrega INT,
     IN p_id_donacion INT,
     IN p_id_comunidad INT,
+    IN p_id_responsable INT,
     IN p_id_estado_entrega INT,
     IN p_fecha_programada DATETIME,
     IN p_fecha_entrega DATETIME,
@@ -141,6 +182,7 @@ BEGIN
     UPDATE entrega_donacion
     SET id_donacion = p_id_donacion,
         id_comunidad = p_id_comunidad,
+        id_responsable = p_id_responsable,
         id_estado_entrega = p_id_estado_entrega,
         fecha_programada = p_fecha_programada,
         fecha_entrega = p_fecha_entrega,

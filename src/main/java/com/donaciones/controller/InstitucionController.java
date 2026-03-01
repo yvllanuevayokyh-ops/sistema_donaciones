@@ -166,6 +166,7 @@ public class InstitucionController {
         String tipoDonante = safe(request.getParameter("tipo_donante"));
         String idPais = safe(request.getParameter("id_pais"));
         String fechaRegistro = safe(request.getParameter("fecha_registro"));
+        Boolean estado = parseEstado(request.getParameter("estado"));
 
         if (nombre.isEmpty() || idPais.isEmpty()) {
             request.getSession().setAttribute("mensaje", "Error: nombre y pais son requeridos");
@@ -189,6 +190,9 @@ public class InstitucionController {
                 Integer.parseInt(idPais),
                 Date.valueOf(LocalDate.parse(fechaRegistro))
         );
+        if (newId > 0 && Boolean.FALSE.equals(estado)) {
+            donanteDAO.cambiarActivo(newId, false);
+        }
 
         request.getSession().setAttribute("mensaje", "Institucion registrada correctamente");
         if (newId > 0) {
@@ -206,6 +210,7 @@ public class InstitucionController {
         String direccion = safe(request.getParameter("direccion"));
         String tipoDonante = safe(request.getParameter("tipo_donante"));
         String idPais = safe(request.getParameter("id_pais"));
+        Boolean estado = parseEstado(request.getParameter("estado"));
 
         if (idDonante == null || nombre.isEmpty() || idPais.isEmpty()) {
             request.getSession().setAttribute("mensaje", "Error: datos incompletos para editar");
@@ -226,6 +231,9 @@ public class InstitucionController {
                 tipoDonante,
                 Integer.parseInt(idPais)
         );
+        if (estado != null) {
+            donanteDAO.cambiarActivo(idDonante, estado);
+        }
 
         request.getSession().setAttribute("mensaje", "Institucion actualizada correctamente");
         response.sendRedirect(request.getContextPath() + "/instituciones?id=" + idDonante);
@@ -297,6 +305,20 @@ public class InstitucionController {
             return null;
         }
         return 1;
+    }
+
+    private Boolean parseEstado(String value) {
+        String v = safe(value).trim();
+        if (v.isEmpty()) {
+            return null;
+        }
+        if ("1".equals(v) || "ACTIVO".equalsIgnoreCase(v) || "TRUE".equalsIgnoreCase(v)) {
+            return true;
+        }
+        if ("0".equals(v) || "INACTIVO".equalsIgnoreCase(v) || "FALSE".equalsIgnoreCase(v)) {
+            return false;
+        }
+        return null;
     }
 
     private <T> List<T> safeList(List<T> rows) {

@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mis Reportes - Sistema Donaciones</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<div class="dashboard-shell">
+    <aside class="sidebar">
+        <div><h2>Donaciones</h2><p>Sistema de Gestion</p></div>
+        <div class="user-box"><strong th:text="${usuarioNombre}">Usuario</strong><span th:text="${usuarioRol}">Rol</span></div>
+        <ul class="menu">
+            <th:block th:if="${isRoleDonante}">
+                <li><a th:href="@{/home}">Dashboard</a></li>
+                <li><a th:href="@{/donaciones}">Mis Donaciones</a></li>
+                <li><a th:href="@{/campanias}">Campanias</a></li>
+                <li><a th:href="@{/mi-perfil}">Mi Perfil</a></li>
+                <li class="active"><a th:href="@{/mis-reportes}">Reportes</a></li>
+            </th:block>
+            <th:block th:if="${isRoleComunidad}">
+                <li><a th:href="@{/home}">Dashboard</a></li>
+                <li><a th:href="@{/comunidades}">Comunidades</a></li>
+                <li><a th:href="@{/campanias}">Campanias</a></li>
+                <li><a th:href="@{/mi-perfil}">Mi Perfil</a></li>
+                <li class="active"><a th:href="@{/mis-reportes}">Reportes</a></li>
+            </th:block>
+        </ul>
+        <a class="logout" th:href="@{/logout}">Cerrar Sesion</a>
+    </aside>
+
+    <main class="main">
+        <p th:if="${flashMessage}" class="flash" th:classappend="${flashError} ? ' flash-error' : ' flash-ok'" th:text="${flashMessage}"></p>
+        <div class="top-title">
+            <div>
+                <h1>Mis Reportes</h1>
+                <p class="muted">Resumen de donaciones y entregas</p>
+            </div>
+        </div>
+
+        <th:block th:if="${reporteTipo == 'donante'}">
+            <p th:if="${!perfilVinculado}" class="muted">No se encontro un perfil donante vinculado.</p>
+            <section th:if="${perfilVinculado}" class="stats finance-stats">
+                <article class="stat"><h3>Donaciones</h3><strong th:text="${reporteDonacionesTotal}">0</strong></article>
+                <article class="stat"><h3>Monto Donado</h3><strong th:text="${'S/ ' + #numbers.formatDecimal(reporteMontoTotal, 1, 'COMMA', 2, 'POINT')}">S/ 0.00</strong></article>
+                <article class="stat"><h3>Con Entrega Asignada</h3><strong th:text="${entregadorPorDonacion != null ? #maps.size(entregadorPorDonacion) : 0}">0</strong></article>
+            </section>
+
+            <section th:if="${perfilVinculado}" class="panel" style="margin-top:16px;">
+                <h3>Detalle de Mis Donaciones</h3>
+                <div class="table-wrap">
+                    <table class="table-fin">
+                        <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Fecha</th>
+                            <th>Estado</th>
+                            <th>Tipo</th>
+                            <th>Monto</th>
+                            <th>Campania</th>
+                            <th>Entrega por</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:if="${reporteDonaciones == null or #lists.isEmpty(reporteDonaciones)}"><td colspan="7" class="muted">No hay donaciones registradas.</td></tr>
+                        <tr th:each="d : ${reporteDonaciones}">
+                            <td th:text="${'DON-' + d.idDonacion}">DON-0</td>
+                            <td th:text="${d.fechaDonacion}">-</td>
+                            <td th:text="${d.estadoDonacion}">-</td>
+                            <td th:text="${d.tipoDonacion}">-</td>
+                            <td th:text="${d.monto != null ? ('S/ ' + d.monto) : 'No monetaria'}">-</td>
+                            <td th:text="${d.campania != null ? d.campania.nombre : 'Sin campania'}">-</td>
+                            <td th:text="${entregadorPorDonacion != null and entregadorPorDonacion[d.idDonacion] != null ? entregadorPorDonacion[d.idDonacion] : 'Sin asignar'}">-</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </th:block>
+
+        <th:block th:if="${reporteTipo == 'comunidad'}">
+            <p th:if="${!perfilVinculado}" class="muted">No se encontro una comunidad vinculada a tu cuenta.</p>
+            <section th:if="${perfilVinculado}" class="stats finance-stats">
+                <article class="stat"><h3>Entregas Recibidas</h3><strong th:text="${reporteEntregas}">0</strong></article>
+                <article class="stat"><h3>Entregas Completadas</h3><strong th:text="${reporteEntregasCompletadas}">0</strong></article>
+                <article class="stat"><h3>Monto Recibido</h3><strong th:text="${'S/ ' + #numbers.formatDecimal(reporteMontoRecibido, 1, 'COMMA', 2, 'POINT')}">S/ 0.00</strong></article>
+            </section>
+
+            <section th:if="${perfilVinculado}" class="panel" style="margin-top:16px;">
+                <h3 th:text="${'Detalle de Recepciones - ' + (reporteComunidad != null ? reporteComunidad.nombre : '')}">Detalle</h3>
+                <div class="table-wrap">
+                    <table class="table-fin">
+                        <thead>
+                        <tr>
+                            <th>Entrega</th>
+                            <th>Donacion</th>
+                            <th>Descripcion</th>
+                            <th>Donante</th>
+                            <th>Entrego</th>
+                            <th>Recibio</th>
+                            <th>Estado</th>
+                            <th>Fecha Entrega</th>
+                            <th>Monto</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:if="${reporteRecepciones == null or #lists.isEmpty(reporteRecepciones)}"><td colspan="9" class="muted">No hay recepciones registradas.</td></tr>
+                        <tr th:each="row : ${reporteRecepciones}">
+                            <td th:text="${'ENT-' + row[0]}">ENT-0</td>
+                            <td th:text="${'DON-' + row[1]}">DON-0</td>
+                            <td th:text="${row[2]}">-</td>
+                            <td th:text="${row[3]}">-</td>
+                            <td th:text="${row[4]}">-</td>
+                            <td th:text="${row[5]}">-</td>
+                            <td th:text="${row[6]}">-</td>
+                            <td th:text="${row[8] != null ? row[8] : '-'}">-</td>
+                            <td th:text="${'S/ ' + row[9]}">S/ 0.00</td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </th:block>
+    </main>
+</div>
+</body>
+</html>

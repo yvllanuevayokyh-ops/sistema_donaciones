@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS permiso (
     descripcion VARCHAR(250) NULL,
     activo TINYINT NOT NULL DEFAULT 1,
     UNIQUE KEY uk_permiso_codigo (codigo)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS rol_permiso (
     id_rol INT NOT NULL,
@@ -18,7 +18,7 @@ CREATE TABLE IF NOT EXISTS rol_permiso (
     CONSTRAINT fk_rol_permiso_permiso
         FOREIGN KEY (id_permiso) REFERENCES permiso(id_permiso)
         ON DELETE CASCADE ON UPDATE CASCADE
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 INSERT INTO permiso (codigo, nombre, descripcion, activo) VALUES
 ('DASHBOARD_VER', 'Ver Dashboard', 'Acceso al panel principal', 1),

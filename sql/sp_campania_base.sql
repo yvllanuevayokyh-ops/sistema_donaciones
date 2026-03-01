@@ -4,6 +4,26 @@ ALTER TABLE campania
 ALTER TABLE campania
     ADD COLUMN IF NOT EXISTS activo TINYINT(1) NOT NULL DEFAULT 1;
 
+ALTER TABLE campania
+    ADD COLUMN IF NOT EXISTS id_comunidad INT NULL;
+
+SET @fk_campania_comunidad_exists := (
+    SELECT COUNT(*)
+    FROM information_schema.TABLE_CONSTRAINTS
+    WHERE CONSTRAINT_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'campania'
+      AND CONSTRAINT_NAME = 'fk_campania_comunidad'
+      AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+);
+SET @sql_add_fk_campania_comunidad := IF(
+    @fk_campania_comunidad_exists = 0,
+    'ALTER TABLE campania ADD CONSTRAINT fk_campania_comunidad FOREIGN KEY (id_comunidad) REFERENCES comunidad_vulnerable(id_comunidad) ON UPDATE CASCADE ON DELETE SET NULL',
+    'SELECT 1'
+);
+PREPARE stmt_fk_campania_comunidad FROM @sql_add_fk_campania_comunidad;
+EXECUTE stmt_fk_campania_comunidad;
+DEALLOCATE PREPARE stmt_fk_campania_comunidad;
+
 UPDATE campania SET activo = 1 WHERE activo IS NULL;
 UPDATE campania SET monto_objetivo = 5000.00 WHERE monto_objetivo IS NULL OR monto_objetivo = 0;
 
@@ -34,6 +54,7 @@ BEGIN
         c.fecha_fin,
         COALESCE(c.estado, 'Activa') AS estado,
         COALESCE(c.monto_objetivo, 0) AS monto_objetivo,
+        c.id_comunidad,
         c.activo
     FROM campania c
     WHERE
@@ -85,6 +106,7 @@ BEGIN
         c.fecha_fin,
         COALESCE(c.estado, 'Activa') AS estado,
         COALESCE(c.monto_objetivo, 0) AS monto_objetivo,
+        c.id_comunidad,
         c.activo
     FROM campania c
     WHERE c.id_campania = p_id_campania
@@ -97,11 +119,12 @@ CREATE PROCEDURE sp_campania_crear(
     IN p_fecha_inicio DATE,
     IN p_fecha_fin DATE,
     IN p_estado VARCHAR(30),
-    IN p_monto_objetivo DECIMAL(12,2)
+    IN p_monto_objetivo DECIMAL(12,2),
+    IN p_id_comunidad INT
 )
 BEGIN
-    INSERT INTO campania (nombre, descripcion, fecha_inicio, fecha_fin, estado, monto_objetivo, activo)
-    VALUES (p_nombre, p_descripcion, p_fecha_inicio, p_fecha_fin, p_estado, p_monto_objetivo, 1);
+    INSERT INTO campania (nombre, descripcion, fecha_inicio, fecha_fin, estado, monto_objetivo, id_comunidad, activo)
+    VALUES (p_nombre, p_descripcion, p_fecha_inicio, p_fecha_fin, p_estado, p_monto_objetivo, p_id_comunidad, 1);
 
     SELECT LAST_INSERT_ID() AS new_id;
 END$$
@@ -113,7 +136,8 @@ CREATE PROCEDURE sp_campania_editar(
     IN p_fecha_inicio DATE,
     IN p_fecha_fin DATE,
     IN p_estado VARCHAR(30),
-    IN p_monto_objetivo DECIMAL(12,2)
+    IN p_monto_objetivo DECIMAL(12,2),
+    IN p_id_comunidad INT
 )
 BEGIN
     UPDATE campania
@@ -123,7 +147,8 @@ BEGIN
         fecha_inicio = p_fecha_inicio,
         fecha_fin = p_fecha_fin,
         estado = p_estado,
-        monto_objetivo = p_monto_objetivo
+        monto_objetivo = p_monto_objetivo,
+        id_comunidad = p_id_comunidad
     WHERE id_campania = p_id_campania;
 END$$
 

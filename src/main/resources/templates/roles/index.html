@@ -6,6 +6,7 @@
     <title>Roles y Permisos - Sistema Donaciones</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script th:src="@{/js/app.js}" defer></script>
 </head>
 <body>
 <div class="dashboard-shell">
@@ -23,6 +24,7 @@
         <ul class="menu">
             <li><a th:href="@{/home}">Dashboard</a></li>
             <li class="active"><a th:href="@{/roles}">Roles y Permisos</a></li>
+            <li><a th:href="@{/catalogos}">Catalogos</a></li>
             <li><a th:href="@{/donaciones}">Donaciones</a></li>
             <li><a th:href="@{/comunidades}">Comunidades</a></li>
             <li><a th:href="@{/instituciones}">Instituciones</a></li>
@@ -64,7 +66,7 @@
             </article>
         </section>
 
-        <form method="get" th:action="@{/roles}" class="toolbar toolbar-simple">
+        <form th:if="${!showForm and !showPermissionForm}" method="get" th:action="@{/roles}" class="toolbar toolbar-simple" data-dynamic-search="true">
             <input type="hidden" name="page" value="1">
             <input type="text" name="q" th:value="${q}" placeholder="Buscar rol por nombre">
             <button type="submit">Buscar</button>
@@ -167,6 +169,29 @@
                         </form>
                     </div>
                     <p th:if="${detalle == null}" class="muted">Selecciona un rol para administrar permisos.</p>
+
+                    <div class="table-wrap" th:if="${usuariosGlobal != null and !#lists.isEmpty(usuariosGlobal)}">
+                        <table class="table-fin">
+                            <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                                <th>Usuario</th>
+                                <th>Rol</th>
+                                <th>Estado</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="u : ${usuariosGlobal}">
+                                <td th:text="${u[0]}">0</td>
+                                <td th:text="${u[1]}">-</td>
+                                <td th:text="${u[2]}">-</td>
+                                <td th:text="${u[3]}">-</td>
+                                <td th:text="${u[4] == '1' ? 'Activo' : 'Inactivo'}">Activo</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </aside>
         </section>

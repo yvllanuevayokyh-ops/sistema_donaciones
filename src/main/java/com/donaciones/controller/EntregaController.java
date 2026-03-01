@@ -1,20 +1,26 @@
 package com.donaciones.controller;
 
 import com.donaciones.dao.ComunidadDAO;
+import com.donaciones.dao.ComunidadResponsableDAO;
 import com.donaciones.dao.DonacionDAO;
 import com.donaciones.dao.EntregaDAO;
 import com.donaciones.dao.ResultadoPaginado;
+import com.donaciones.dao.VoluntarioDAO;
+import com.donaciones.model.ComunidadResponsable;
 import com.donaciones.model.ComunidadVulnerable;
 import com.donaciones.model.Donacion;
 import com.donaciones.model.EntregaDonacion;
 import com.donaciones.model.EstadoEntrega;
+import com.donaciones.model.Voluntario;
 import java.io.IOException;
 import java.sql.Timestamp;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import org.springframework.stereotype.Controller;
@@ -29,6 +35,8 @@ public class EntregaController {
     private final EntregaDAO entregaDAO = new EntregaDAO();
     private final DonacionDAO donacionDAO = new DonacionDAO();
     private final ComunidadDAO comunidadDAO = new ComunidadDAO();
+    private final ComunidadResponsableDAO responsableDAO = new ComunidadResponsableDAO();
+    private final VoluntarioDAO voluntarioDAO = new VoluntarioDAO();
 
     @GetMapping("/entregas")
     public String doGet(HttpServletRequest request, HttpServletResponse response)
@@ -58,11 +66,19 @@ public class EntregaController {
         List<EntregaDonacion> entregas = new ArrayList<EntregaDonacion>();
         List<Donacion> donaciones = new ArrayList<Donacion>();
         List<ComunidadVulnerable> comunidades = new ArrayList<ComunidadVulnerable>();
+        List<ComunidadResponsable> responsables = new ArrayList<ComunidadResponsable>();
+        List<Voluntario> voluntarios = new ArrayList<Voluntario>();
         List<EstadoEntrega> estados = new ArrayList<EstadoEntrega>();
         EntregaDonacion detalle = null;
         EntregaDonacion edicion = null;
+        Integer voluntarioAsignadoDetalle = null;
+        Integer voluntarioAsignadoEdicion = null;
+        String entregadorDetalle = "";
+        String responsableDetalle = "";
         int totalRows = 0;
         int totalPages = 1;
+        Map<Integer, String> entregadorPorEntrega = new LinkedHashMap<Integer, String>();
+        Map<Integer, String> responsablePorEntrega = new LinkedHashMap<Integer, String>();
 
         try {
             ResultadoPaginado<EntregaDonacion> resultado =
@@ -79,6 +95,10 @@ public class EntregaController {
             estados = safeList(entregaDAO.listarEstados());
             donaciones = safeList(donacionDAO.listarDonacionesCatalogo());
             comunidades = safeList(comunidadDAO.listarComunidadesCatalogo());
+            responsables = safeList(responsableDAO.listarActivos());
+            voluntarios = safeList(voluntarioDAO.listarActivosCatalogo());
+            entregadorPorEntrega = entregaDAO.obtenerEntregadoresPorEntregas(extractIds(entregas));
+            responsablePorEntrega = entregaDAO.obtenerResponsablesPorEntregas(extractIds(entregas));
 
             if (selectedId == null && !entregas.isEmpty()) {
                 selectedId = entregas.get(0).getIdEntrega();
@@ -88,9 +108,16 @@ public class EntregaController {
             }
             if (selectedId != null) {
                 detalle = entregaDAO.buscarDetalle(selectedId);
+                voluntarioAsignadoDetalle = entregaDAO.obtenerVoluntarioAsignado(selectedId);
+                entregadorDetalle = entregadorPorEntrega.getOrDefault(selectedId, "");
+                if (entregadorDetalle.isEmpty() && voluntarioAsignadoDetalle != null) {
+                    entregadorDetalle = buscarNombreVoluntario(voluntarios, voluntarioAsignadoDetalle);
+                }
+                responsableDetalle = responsablePorEntrega.getOrDefault(selectedId, "");
             }
             if (editarId != null) {
                 edicion = entregaDAO.buscarDetalle(editarId);
+                voluntarioAsignadoEdicion = entregaDAO.obtenerVoluntarioAsignado(editarId);
             }
         } catch (Exception ex) {
             ex.printStackTrace();
@@ -101,9 +128,17 @@ public class EntregaController {
         request.setAttribute("entregas", entregas);
         request.setAttribute("donaciones", donaciones);
         request.setAttribute("comunidades", comunidades);
+        request.setAttribute("responsables", responsables);
+        request.setAttribute("voluntarios", voluntarios);
         request.setAttribute("estados", estados);
         request.setAttribute("detalle", detalle);
         request.setAttribute("edicion", edicion);
+        request.setAttribute("voluntarioAsignadoDetalle", voluntarioAsignadoDetalle);
+        request.setAttribute("voluntarioAsignadoEdicion", voluntarioAsignadoEdicion);
+        request.setAttribute("entregadorPorEntrega", entregadorPorEntrega);
+        request.setAttribute("responsablePorEntrega", responsablePorEntrega);
+        request.setAttribute("entregadorDetalle", entregadorDetalle);
+        request.setAttribute("responsableDetalle", responsableDetalle);
         request.setAttribute("showForm", showForm);
         request.setAttribute("selectedId", selectedId);
         request.setAttribute("q", q);
@@ -155,14 +190,21 @@ public class EntregaController {
     private void crearEntrega(HttpServletRequest request, HttpServletResponse response) throws Exception {
         Integer idDonacion = parseInteger(request.getParameter("id_donacion"));
         Integer idComunidad = parseInteger(request.getParameter("id_comunidad"));
+        Integer idResponsable = parseInteger(request.getParameter("id_responsable"));
         Integer idEstado = parseInteger(request.getParameter("id_estado_entrega"));
         Timestamp fechaProgramada = parseTimestamp(request.getParameter("fecha_programada"));
         Timestamp fechaEntrega = parseTimestamp(request.getParameter("fecha_entrega"));
+        Integer idVoluntario = parseInteger(request.getParameter("id_voluntario"));
         String observaciones = safe(request.getParameter("observaciones"));
 
         if (idDonacion == null || idComunidad == null) {
             request.getSession().setAttribute("mensaje", "Error: selecciona donacion y comunidad");
             response.sendRedirect(request.getContextPath() + "/entregas");
+            return;
+        }
+        if (idResponsable != null && !responsableDAO.perteneceAComunidad(idResponsable, idComunidad)) {
+            request.getSession().setAttribute("mensaje", "Error: el responsable no pertenece a la comunidad seleccionada");
+            response.sendRedirect(request.getContextPath() + "/entregas?nuevo=1");
             return;
         }
         if (idEstado == null) {
@@ -172,7 +214,10 @@ public class EntregaController {
             fechaEntrega = nowTimestamp();
         }
 
-        int newId = entregaDAO.crear(idDonacion, idComunidad, idEstado, fechaProgramada, fechaEntrega, observaciones);
+        int newId = entregaDAO.crear(idDonacion, idComunidad, idResponsable, idEstado, fechaProgramada, fechaEntrega, observaciones);
+        if (newId > 0) {
+            entregaDAO.asignarVoluntario(newId, idVoluntario);
+        }
         request.getSession().setAttribute("mensaje", "Entrega registrada correctamente");
         if (newId > 0) {
             response.sendRedirect(request.getContextPath() + "/entregas?id=" + newId);
@@ -185,9 +230,11 @@ public class EntregaController {
         Integer idEntrega = parseInteger(request.getParameter("id_entrega"));
         Integer idDonacion = parseInteger(request.getParameter("id_donacion"));
         Integer idComunidad = parseInteger(request.getParameter("id_comunidad"));
+        Integer idResponsable = parseInteger(request.getParameter("id_responsable"));
         Integer idEstado = parseInteger(request.getParameter("id_estado_entrega"));
         Timestamp fechaProgramada = parseTimestamp(request.getParameter("fecha_programada"));
         Timestamp fechaEntrega = parseTimestamp(request.getParameter("fecha_entrega"));
+        Integer idVoluntario = parseInteger(request.getParameter("id_voluntario"));
         String observaciones = safe(request.getParameter("observaciones"));
 
         if (idEntrega == null || idDonacion == null || idComunidad == null || idEstado == null) {
@@ -195,11 +242,17 @@ public class EntregaController {
             response.sendRedirect(request.getContextPath() + "/entregas");
             return;
         }
+        if (idResponsable != null && !responsableDAO.perteneceAComunidad(idResponsable, idComunidad)) {
+            request.getSession().setAttribute("mensaje", "Error: el responsable no pertenece a la comunidad seleccionada");
+            response.sendRedirect(request.getContextPath() + "/entregas?editarId=" + idEntrega);
+            return;
+        }
         if (idEstado == 3 && fechaEntrega == null) {
             fechaEntrega = nowTimestamp();
         }
 
-        entregaDAO.editar(idEntrega, idDonacion, idComunidad, idEstado, fechaProgramada, fechaEntrega, observaciones);
+        entregaDAO.editar(idEntrega, idDonacion, idComunidad, idResponsable, idEstado, fechaProgramada, fechaEntrega, observaciones);
+        entregaDAO.asignarVoluntario(idEntrega, idVoluntario);
         request.getSession().setAttribute("mensaje", "Entrega actualizada correctamente");
         response.sendRedirect(request.getContextPath() + "/entregas?id=" + idEntrega);
     }
@@ -284,6 +337,31 @@ public class EntregaController {
     private Timestamp nowTimestamp() {
         LocalDateTime now = LocalDateTime.now().withSecond(0).withNano(0);
         return Timestamp.valueOf(now);
+    }
+
+    private List<Integer> extractIds(List<EntregaDonacion> rows) {
+        List<Integer> ids = new ArrayList<Integer>();
+        if (rows == null) {
+            return ids;
+        }
+        for (EntregaDonacion e : rows) {
+            if (e != null && e.getIdEntrega() != null) {
+                ids.add(e.getIdEntrega());
+            }
+        }
+        return ids;
+    }
+
+    private String buscarNombreVoluntario(List<Voluntario> voluntarios, Integer idVoluntario) {
+        if (voluntarios == null || idVoluntario == null) {
+            return "";
+        }
+        for (Voluntario v : voluntarios) {
+            if (v != null && v.getIdVoluntario() != null && v.getIdVoluntario().intValue() == idVoluntario.intValue()) {
+                return safe(v.getNombre());
+            }
+        }
+        return "";
     }
 
     private <T> List<T> safeList(List<T> rows) {

@@ -1,8 +1,10 @@
 package com.donaciones.controller;
 
 import com.donaciones.dao.CampaniaDAO;
+import com.donaciones.dao.ComunidadDAO;
 import com.donaciones.dao.ResultadoPaginado;
 import com.donaciones.model.Campania;
+import com.donaciones.model.ComunidadVulnerable;
 import java.io.IOException;
 import java.math.BigDecimal;
 import java.sql.Date;
@@ -23,6 +25,7 @@ public class CampaniaController {
     private static final int PAGE_SIZE = 4;
 
     private final CampaniaDAO campaniaDAO = new CampaniaDAO();
+    private final ComunidadDAO comunidadDAO = new ComunidadDAO();
 
     @GetMapping("/campanias")
     public String doGet(HttpServletRequest request, HttpServletResponse response)
@@ -62,6 +65,7 @@ public class CampaniaController {
         }
 
         List<Campania> campanias = new ArrayList<Campania>();
+        List<ComunidadVulnerable> comunidades = new ArrayList<ComunidadVulnerable>();
         Campania detalle = null;
         Campania edicion = null;
         int totalRows = 0;
@@ -82,6 +86,7 @@ public class CampaniaController {
             }
 
             campanias = safeList(resultado.getDatos());
+            comunidades = safeList(comunidadDAO.listarComunidadesCatalogo());
             totalRows = resultado.getTotalRegistros();
             totalPages = Math.max(1, resultado.getTotalPaginas());
 
@@ -115,6 +120,7 @@ public class CampaniaController {
         }
 
         request.setAttribute("campanias", campanias);
+        request.setAttribute("comunidades", comunidades);
         request.setAttribute("detalle", detalle);
         request.setAttribute("edicion", edicion);
         request.setAttribute("showForm", showForm);
@@ -179,11 +185,17 @@ public class CampaniaController {
         String fechaInicio = safe(request.getParameter("fecha_inicio"));
         String fechaFin = safe(request.getParameter("fecha_fin"));
         String estado = safe(request.getParameter("estado"));
+        Integer idComunidad = parseInteger(request.getParameter("id_comunidad"));
         BigDecimal montoObjetivo = parseDecimal(request.getParameter("monto_objetivo"));
 
         if (nombre.isEmpty()) {
             request.getSession().setAttribute("mensaje", "Error: nombre es requerido");
             response.sendRedirect(request.getContextPath() + "/campanias");
+            return;
+        }
+        if (idComunidad == null) {
+            request.getSession().setAttribute("mensaje", "Error: selecciona una comunidad");
+            response.sendRedirect(request.getContextPath() + "/campanias?nuevo=1");
             return;
         }
         if (fechaInicio.isEmpty()) {
@@ -202,7 +214,8 @@ public class CampaniaController {
                 Date.valueOf(LocalDate.parse(fechaInicio)),
                 fechaFin.isEmpty() ? null : Date.valueOf(LocalDate.parse(fechaFin)),
                 estado,
-                montoObjetivo
+                montoObjetivo,
+                idComunidad
         );
 
         request.getSession().setAttribute("mensaje", "Campania registrada correctamente");
@@ -220,9 +233,10 @@ public class CampaniaController {
         String fechaInicio = safe(request.getParameter("fecha_inicio"));
         String fechaFin = safe(request.getParameter("fecha_fin"));
         String estado = safe(request.getParameter("estado"));
+        Integer idComunidad = parseInteger(request.getParameter("id_comunidad"));
         BigDecimal montoObjetivo = parseDecimal(request.getParameter("monto_objetivo"));
 
-        if (idCampania == null || nombre.isEmpty() || fechaInicio.isEmpty()) {
+        if (idCampania == null || nombre.isEmpty() || fechaInicio.isEmpty() || idComunidad == null) {
             request.getSession().setAttribute("mensaje", "Error: datos incompletos para editar");
             response.sendRedirect(request.getContextPath() + "/campanias");
             return;
@@ -241,7 +255,8 @@ public class CampaniaController {
                 Date.valueOf(LocalDate.parse(fechaInicio)),
                 fechaFin.isEmpty() ? null : Date.valueOf(LocalDate.parse(fechaFin)),
                 estado,
-                montoObjetivo
+                montoObjetivo,
+                idComunidad
         );
 
         request.getSession().setAttribute("mensaje", "Campania actualizada correctamente");

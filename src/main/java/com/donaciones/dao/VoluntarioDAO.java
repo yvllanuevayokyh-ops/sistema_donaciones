@@ -77,7 +77,7 @@ public class VoluntarioDAO {
         }
     }
 
-    public int crear(String nombre, String telefono, String email, Date fechaIngreso) {
+    public int crear(String nombre, String telefono, String email, Date fechaIngreso, Integer idCampania) {
         EntityManager em = JPAUtil.getInstance().getEntityManager();
         EntityTransaction tx = em.getTransaction();
         try {
@@ -87,10 +87,14 @@ public class VoluntarioDAO {
             sp.registerStoredProcedureParameter("p_telefono", String.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_email", String.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_fecha_ingreso", Date.class, ParameterMode.IN);
+            sp.registerStoredProcedureParameter("p_id_campania", Integer.class, ParameterMode.IN);
+            enableNullParam(sp, "p_fecha_ingreso");
+            enableNullParam(sp, "p_id_campania");
             sp.setParameter("p_nombre", safe(nombre));
             sp.setParameter("p_telefono", safe(telefono));
             sp.setParameter("p_email", safe(email));
             sp.setParameter("p_fecha_ingreso", fechaIngreso);
+            sp.setParameter("p_id_campania", idCampania);
             sp.execute();
 
             int newId = extractGeneratedId(sp);
@@ -107,7 +111,8 @@ public class VoluntarioDAO {
         }
     }
 
-    public void editar(Integer idVoluntario, String nombre, String telefono, String email, Date fechaIngreso) {
+    public void editar(Integer idVoluntario, String nombre, String telefono, String email, Date fechaIngreso,
+                       Integer idCampania) {
         EntityManager em = JPAUtil.getInstance().getEntityManager();
         EntityTransaction tx = em.getTransaction();
         try {
@@ -118,11 +123,15 @@ public class VoluntarioDAO {
             sp.registerStoredProcedureParameter("p_telefono", String.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_email", String.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_fecha_ingreso", Date.class, ParameterMode.IN);
+            sp.registerStoredProcedureParameter("p_id_campania", Integer.class, ParameterMode.IN);
+            enableNullParam(sp, "p_fecha_ingreso");
+            enableNullParam(sp, "p_id_campania");
             sp.setParameter("p_id_voluntario", idVoluntario);
             sp.setParameter("p_nombre", safe(nombre));
             sp.setParameter("p_telefono", safe(telefono));
             sp.setParameter("p_email", safe(email));
             sp.setParameter("p_fecha_ingreso", fechaIngreso);
+            sp.setParameter("p_id_campania", idCampania);
             sp.execute();
             tx.commit();
         } catch (RuntimeException ex) {
@@ -249,6 +258,18 @@ public class VoluntarioDAO {
                 conteos.put(toInt(row[0]), toInt(row[1]));
             }
             return conteos;
+        } finally {
+            em.close();
+        }
+    }
+
+    public List<Voluntario> listarActivosCatalogo() {
+        EntityManager em = JPAUtil.getInstance().getEntityManager();
+        try {
+            return em.createQuery(
+                    "SELECT v FROM Voluntario v WHERE v.estado = TRUE ORDER BY v.nombre ASC",
+                    Voluntario.class
+            ).getResultList();
         } finally {
             em.close();
         }

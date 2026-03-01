@@ -6,6 +6,7 @@
     <title>Entregas - Sistema Donaciones</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script th:src="@{/js/app.js}" defer></script>
 </head>
 <body>
 <div class="dashboard-shell">
@@ -15,6 +16,7 @@
         <ul class="menu">
             <li><a th:href="@{/home}">Dashboard</a></li>
             <li><a th:href="@{/roles}">Roles y Permisos</a></li>
+            <li><a th:href="@{/catalogos}">Catalogos</a></li>
             <li><a th:href="@{/donaciones}">Donaciones</a></li>
             <li><a th:href="@{/comunidades}">Comunidades</a></li>
             <li><a th:href="@{/instituciones}">Instituciones</a></li>
@@ -30,10 +32,13 @@
         <p th:if="${flashMessage}" class="flash" th:classappend="${flashError} ? ' flash-error' : ' flash-ok'" th:text="${flashMessage}"></p>
         <div class="top-title">
             <div><h1>Gestion de Entregas</h1><p class="muted">Programacion y seguimiento</p></div>
-            <a class="btn-new" th:href="@{/entregas(nuevo=1,q=${q},estado=${estado},page=${currentPage})}">+ Nueva Entrega</a>
+            <div class="top-actions">
+                <a class="btn-new btn-alt" th:href="@{/export/excel(modulo='entregas',q=${q},estado=${estado})}">Exportar Excel</a>
+                <a class="btn-new" th:href="@{/entregas(nuevo=1,q=${q},estado=${estado},page=${currentPage})}">+ Nueva Entrega</a>
+            </div>
         </div>
 
-        <form method="get" th:action="@{/entregas}" class="toolbar toolbar-simple">
+        <form th:if="${!showForm}" method="get" th:action="@{/entregas}" class="toolbar toolbar-simple" data-dynamic-search="true">
             <input type="hidden" name="page" value="1">
             <input type="text" name="q" th:value="${q}" placeholder="Buscar por comunidad o descripcion">
             <select name="estado">
@@ -49,7 +54,7 @@
         <section class="donaciones-layout">
             <article class="panel" th:if="${showForm}">
                 <h3 th:text="${edicion != null ? 'Editar Entrega' : 'Nueva Entrega'}"></h3>
-                <form method="post" th:action="@{/entregas}" class="form-grid">
+                <form method="post" th:action="@{/entregas}" class="form-grid" data-entrega-form="true">
                     <input type="hidden" name="accion" th:value="${edicion != null ? 'editar' : 'crear'}">
                     <input th:if="${edicion != null}" type="hidden" name="id_entrega" th:value="${edicion.idEntrega}">
                     <div>
@@ -63,10 +68,21 @@
                     </div>
                     <div>
                         <label>Comunidad</label>
-                        <select name="id_comunidad" required>
+                        <select name="id_comunidad" required data-comunidad-select="true">
                             <option value="">Selecciona comunidad</option>
                             <option th:each="c : ${comunidades}" th:value="${c.idComunidad}" th:text="${c.nombre}"
                                     th:selected="${edicion != null and edicion.comunidad != null and edicion.comunidad.idComunidad == c.idComunidad}"></option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Responsable que recibe</label>
+                        <select name="id_responsable" data-responsable-select="true">
+                            <option value="">Sin asignar</option>
+                            <option th:each="r : ${responsables}"
+                                    th:value="${r.idResponsable}"
+                                    th:text="${r.nombre + (r.cargo != null and !#strings.isEmpty(r.cargo) ? ' - ' + r.cargo : '')}"
+                                    th:attr="data-comunidad-id=${r.comunidad != null ? r.comunidad.idComunidad : ''}"
+                                    th:selected="${edicion != null and edicion.responsable != null and edicion.responsable.idResponsable == r.idResponsable}"></option>
                         </select>
                     </div>
                     <div>
@@ -74,6 +90,14 @@
                         <select name="id_estado_entrega" required>
                             <option th:each="e : ${estados}" th:value="${e.idEstadoEntrega}" th:text="${e.descripcion}"
                                     th:selected="${edicion != null and edicion.estadoEntrega != null and edicion.estadoEntrega.idEstadoEntrega == e.idEstadoEntrega}"></option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Quien entrega</label>
+                        <select name="id_voluntario">
+                            <option value="">Sin asignar</option>
+                            <option th:each="v : ${voluntarios}" th:value="${v.idVoluntario}" th:text="${v.nombre}"
+                                    th:selected="${voluntarioAsignadoEdicion != null and voluntarioAsignadoEdicion == v.idVoluntario}"></option>
                         </select>
                     </div>
                     <div>
@@ -101,6 +125,8 @@
                         <span class="badge badge-pendiente" th:text="${e.estadoEntrega != null ? e.estadoEntrega.descripcion : 'Programado'}"></span>
                     </div>
                     <p th:text="${e.comunidad != null ? e.comunidad.nombre : 'Sin comunidad'}"></p>
+                    <small>Recibe: <span th:text="${responsablePorEntrega != null and responsablePorEntrega[e.idEntrega] != null ? responsablePorEntrega[e.idEntrega] : 'Sin asignar'}">Sin asignar</span></small>
+                    <small>Entrega por: <span th:text="${entregadorPorEntrega != null and entregadorPorEntrega[e.idEntrega] != null ? entregadorPorEntrega[e.idEntrega] : 'Sin asignar'}">Sin asignar</span></small>
                     <small th:text="${(e.donacion != null ? ('DON-' + e.donacion.idDonacion) : 'Sin donacion') + ' - Programada: ' + (e.fechaProgramada != null ? #dates.format(e.fechaProgramada, 'dd/MM/yyyy HH:mm') : '-') + ' - Entrega: ' + (e.fechaEntrega != null ? #dates.format(e.fechaEntrega, 'dd/MM/yyyy HH:mm') : '-')}"></small>
                     <div class="row-actions">
                         <a class="btn-mini btn-edit" th:href="@{/entregas(editarId=${e.idEntrega},q=${q},estado=${estado},page=${currentPage})}">Editar</a>
@@ -127,9 +153,10 @@
                     <p><strong>Tipo:</strong> <span th:text="${detalle.donacion != null ? detalle.donacion.tipoDonacion : ''}"></span></p>
                     <p><strong>Monto donado:</strong> <span th:text="${detalle.donacion != null and detalle.donacion.monto != null ? ('S/ ' + detalle.donacion.monto) : 'No monetaria'}"></span></p>
                     <p><strong>Comunidad:</strong> <span th:text="${detalle.comunidad != null ? detalle.comunidad.nombre : ''}"></span></p>
+                    <p><strong>Recibe:</strong> <span th:text="${responsableDetalle != null and !#strings.isEmpty(responsableDetalle) ? responsableDetalle : 'Sin asignar'}">Sin asignar</span></p>
                     <p><strong>Estado:</strong> <span th:text="${detalle.estadoEntrega != null ? detalle.estadoEntrega.descripcion : ''}"></span></p>
+                    <p><strong>Entrega por:</strong> <span th:text="${entregadorDetalle != null and !#strings.isEmpty(entregadorDetalle) ? entregadorDetalle : 'Sin asignar'}">Sin asignar</span></p>
                     <p><strong>Fecha programada:</strong> <span th:text="${detalle.fechaProgramada != null ? #dates.format(detalle.fechaProgramada, 'dd/MM/yyyy HH:mm') : '-'}"></span></p>
-                    <p><strong>Fecha entrega:</strong> <span th:text="${detalle.fechaEntrega != null ? #dates.format(detalle.fechaEntrega, 'dd/MM/yyyy HH:mm') : '-'}"></span></p>
                 </div>
 
                 <form th:if="${detalle != null}" method="post" th:action="@{/entregas}" class="form-grid form-panel">

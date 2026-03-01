@@ -83,7 +83,7 @@ public class CampaniaDAO {
     }
 
     public int crear(String nombre, String descripcion, Date fechaInicio, Date fechaFin,
-                     String estado, BigDecimal montoObjetivo) {
+                     String estado, BigDecimal montoObjetivo, Integer idComunidad) {
         EntityManager em = JPAUtil.getInstance().getEntityManager();
         EntityTransaction tx = em.getTransaction();
         try {
@@ -95,12 +95,17 @@ public class CampaniaDAO {
             sp.registerStoredProcedureParameter("p_fecha_fin", Date.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_estado", String.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_monto_objetivo", BigDecimal.class, ParameterMode.IN);
+            sp.registerStoredProcedureParameter("p_id_comunidad", Integer.class, ParameterMode.IN);
+            enableNullParam(sp, "p_fecha_fin");
+            enableNullParam(sp, "p_monto_objetivo");
+            enableNullParam(sp, "p_id_comunidad");
             sp.setParameter("p_nombre", safe(nombre));
             sp.setParameter("p_descripcion", safe(descripcion));
             sp.setParameter("p_fecha_inicio", fechaInicio);
             sp.setParameter("p_fecha_fin", fechaFin);
             sp.setParameter("p_estado", safe(estado));
             sp.setParameter("p_monto_objetivo", montoObjetivo);
+            sp.setParameter("p_id_comunidad", idComunidad);
             sp.execute();
 
             int newId = extractGeneratedId(sp);
@@ -118,7 +123,7 @@ public class CampaniaDAO {
     }
 
     public void editar(Integer idCampania, String nombre, String descripcion, Date fechaInicio,
-                       Date fechaFin, String estado, BigDecimal montoObjetivo) {
+                       Date fechaFin, String estado, BigDecimal montoObjetivo, Integer idComunidad) {
         EntityManager em = JPAUtil.getInstance().getEntityManager();
         EntityTransaction tx = em.getTransaction();
         try {
@@ -131,6 +136,10 @@ public class CampaniaDAO {
             sp.registerStoredProcedureParameter("p_fecha_fin", Date.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_estado", String.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_monto_objetivo", BigDecimal.class, ParameterMode.IN);
+            sp.registerStoredProcedureParameter("p_id_comunidad", Integer.class, ParameterMode.IN);
+            enableNullParam(sp, "p_fecha_fin");
+            enableNullParam(sp, "p_monto_objetivo");
+            enableNullParam(sp, "p_id_comunidad");
             sp.setParameter("p_id_campania", idCampania);
             sp.setParameter("p_nombre", safe(nombre));
             sp.setParameter("p_descripcion", safe(descripcion));
@@ -138,6 +147,7 @@ public class CampaniaDAO {
             sp.setParameter("p_fecha_fin", fechaFin);
             sp.setParameter("p_estado", safe(estado));
             sp.setParameter("p_monto_objetivo", montoObjetivo);
+            sp.setParameter("p_id_comunidad", idComunidad);
             sp.execute();
             tx.commit();
         } catch (RuntimeException ex) {

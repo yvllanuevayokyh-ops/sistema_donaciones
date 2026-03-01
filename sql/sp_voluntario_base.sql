@@ -1,6 +1,26 @@
 ALTER TABLE voluntario
     ADD COLUMN IF NOT EXISTS estado TINYINT(1) NOT NULL DEFAULT 1;
 
+ALTER TABLE voluntario
+    ADD COLUMN IF NOT EXISTS id_campania INT NULL;
+
+SET @fk_voluntario_campania_exists := (
+    SELECT COUNT(*)
+    FROM information_schema.TABLE_CONSTRAINTS
+    WHERE CONSTRAINT_SCHEMA = DATABASE()
+      AND TABLE_NAME = 'voluntario'
+      AND CONSTRAINT_NAME = 'fk_voluntario_campania'
+      AND CONSTRAINT_TYPE = 'FOREIGN KEY'
+);
+SET @sql_add_fk_voluntario_campania := IF(
+    @fk_voluntario_campania_exists = 0,
+    'ALTER TABLE voluntario ADD CONSTRAINT fk_voluntario_campania FOREIGN KEY (id_campania) REFERENCES campania(id_campania) ON UPDATE CASCADE ON DELETE SET NULL',
+    'SELECT 1'
+);
+PREPARE stmt_fk_voluntario_campania FROM @sql_add_fk_voluntario_campania;
+EXECUTE stmt_fk_voluntario_campania;
+DEALLOCATE PREPARE stmt_fk_voluntario_campania;
+
 UPDATE voluntario SET estado = 1 WHERE estado IS NULL;
 
 DROP PROCEDURE IF EXISTS sp_voluntario_listar;
@@ -26,6 +46,7 @@ BEGIN
         v.email,
         v.telefono,
         v.fecha_ingreso,
+        v.id_campania,
         v.estado
     FROM voluntario v
     WHERE
@@ -67,6 +88,7 @@ BEGIN
         v.email,
         v.telefono,
         v.fecha_ingreso,
+        v.id_campania,
         v.estado
     FROM voluntario v
     WHERE v.id_voluntario = p_id_voluntario
@@ -77,11 +99,12 @@ CREATE PROCEDURE sp_voluntario_crear(
     IN p_nombre VARCHAR(150),
     IN p_telefono VARCHAR(20),
     IN p_email VARCHAR(100),
-    IN p_fecha_ingreso DATE
+    IN p_fecha_ingreso DATE,
+    IN p_id_campania INT
 )
 BEGIN
-    INSERT INTO voluntario (nombre, telefono, email, fecha_ingreso, estado)
-    VALUES (p_nombre, p_telefono, p_email, p_fecha_ingreso, 1);
+    INSERT INTO voluntario (nombre, telefono, email, fecha_ingreso, id_campania, estado)
+    VALUES (p_nombre, p_telefono, p_email, p_fecha_ingreso, p_id_campania, 1);
 
     SELECT LAST_INSERT_ID() AS new_id;
 END$$
@@ -91,7 +114,8 @@ CREATE PROCEDURE sp_voluntario_editar(
     IN p_nombre VARCHAR(150),
     IN p_telefono VARCHAR(20),
     IN p_email VARCHAR(100),
-    IN p_fecha_ingreso DATE
+    IN p_fecha_ingreso DATE,
+    IN p_id_campania INT
 )
 BEGIN
     UPDATE voluntario
@@ -99,7 +123,8 @@ BEGIN
         nombre = p_nombre,
         telefono = p_telefono,
         email = p_email,
-        fecha_ingreso = p_fecha_ingreso
+        fecha_ingreso = p_fecha_ingreso,
+        id_campania = p_id_campania
     WHERE id_voluntario = p_id_voluntario;
 END$$
 

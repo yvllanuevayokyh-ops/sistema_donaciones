@@ -1,7 +1,9 @@
 package com.donaciones.controller;
 
+import com.donaciones.dao.CampaniaDAO;
 import com.donaciones.dao.ResultadoPaginado;
 import com.donaciones.dao.VoluntarioDAO;
+import com.donaciones.model.Campania;
 import com.donaciones.model.Voluntario;
 import java.io.IOException;
 import java.sql.Date;
@@ -22,6 +24,7 @@ public class VoluntarioController {
     private static final int PAGE_SIZE = 4;
 
     private final VoluntarioDAO voluntarioDAO = new VoluntarioDAO();
+    private final CampaniaDAO campaniaDAO = new CampaniaDAO();
 
     @GetMapping("/voluntarios")
     public String doGet(HttpServletRequest request, HttpServletResponse response)
@@ -51,6 +54,7 @@ public class VoluntarioController {
         boolean showForm = "1".equals(safe(request.getParameter("nuevo"))) || editarId != null;
 
         List<Voluntario> voluntarios = new ArrayList<Voluntario>();
+        List<Campania> campanias = new ArrayList<Campania>();
         Voluntario detalle = null;
         Voluntario edicion = null;
         int totalRows = 0;
@@ -73,6 +77,7 @@ public class VoluntarioController {
             }
 
             voluntarios = safeList(resultado.getDatos());
+            campanias = safeList(campaniaDAO.listarActivas());
             totalRows = resultado.getTotalRegistros();
             totalPages = Math.max(1, resultado.getTotalPaginas());
 
@@ -109,6 +114,7 @@ public class VoluntarioController {
         }
 
         request.setAttribute("voluntarios", voluntarios);
+        request.setAttribute("campanias", campanias);
         request.setAttribute("detalle", detalle);
         request.setAttribute("edicion", edicion);
         request.setAttribute("showForm", showForm);
@@ -122,7 +128,6 @@ public class VoluntarioController {
         request.setAttribute("totalPages", totalPages);
         request.setAttribute("totalActivos", totalActivos);
         request.setAttribute("entregasCompletadas", entregasCompletadas);
-        request.setAttribute("horasVoluntariado", entregasCompletadas * 4);
         request.setAttribute("entregasTotalesPorVoluntario", entregasTotalesPorVoluntario);
         request.setAttribute("entregasCompletadasPorVoluntario", entregasCompletadasPorVoluntario);
         request.setAttribute("entregasDetalle", entregasDetalle);
@@ -172,6 +177,8 @@ public class VoluntarioController {
         String telefono = safe(request.getParameter("telefono"));
         String email = safe(request.getParameter("email"));
         String fechaIngreso = safe(request.getParameter("fecha_ingreso"));
+        Integer idCampania = parseInteger(request.getParameter("id_campania"));
+        Boolean estado = parseEstado(request.getParameter("estado"));
         if (fechaIngreso.isEmpty()) {
             fechaIngreso = LocalDate.now().toString();
         }
@@ -186,8 +193,13 @@ public class VoluntarioController {
                 nombre,
                 telefono,
                 email,
-                Date.valueOf(LocalDate.parse(fechaIngreso))
+                Date.valueOf(LocalDate.parse(fechaIngreso)),
+                idCampania
         );
+
+        if (newId > 0 && Boolean.FALSE.equals(estado)) {
+            voluntarioDAO.cambiarEstado(newId, false);
+        }
 
         request.getSession().setAttribute("mensaje", "Voluntario registrado correctamente");
         if (newId > 0) {
@@ -203,6 +215,8 @@ public class VoluntarioController {
         String telefono = safe(request.getParameter("telefono"));
         String email = safe(request.getParameter("email"));
         String fechaIngreso = safe(request.getParameter("fecha_ingreso"));
+        Integer idCampania = parseInteger(request.getParameter("id_campania"));
+        Boolean estado = parseEstado(request.getParameter("estado"));
 
         if (idVoluntario == null || nombre.isEmpty() || fechaIngreso.isEmpty()) {
             request.getSession().setAttribute("mensaje", "Error: datos incompletos para editar");
@@ -215,8 +229,12 @@ public class VoluntarioController {
                 nombre,
                 telefono,
                 email,
-                Date.valueOf(LocalDate.parse(fechaIngreso))
+                Date.valueOf(LocalDate.parse(fechaIngreso)),
+                idCampania
         );
+        if (estado != null) {
+            voluntarioDAO.cambiarEstado(idVoluntario, estado);
+        }
 
         request.getSession().setAttribute("mensaje", "Voluntario actualizado correctamente");
         response.sendRedirect(request.getContextPath() + "/voluntarios?id=" + idVoluntario);
@@ -288,6 +306,20 @@ public class VoluntarioController {
             return null;
         }
         return 1;
+    }
+
+    private Boolean parseEstado(String value) {
+        String v = safe(value).trim();
+        if (v.isEmpty()) {
+            return null;
+        }
+        if ("1".equals(v) || "ACTIVO".equalsIgnoreCase(v) || "TRUE".equalsIgnoreCase(v)) {
+            return true;
+        }
+        if ("0".equals(v) || "INACTIVO".equalsIgnoreCase(v) || "FALSE".equalsIgnoreCase(v)) {
+            return false;
+        }
+        return null;
     }
 
     private <T> List<T> safeList(List<T> rows) {

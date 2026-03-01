@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="es" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mi Perfil - Sistema Donaciones</title>
+    <link rel="stylesheet" th:href="@{/css/app.css}">
+    <script th:src="@{/js/app.js}" defer></script>
+</head>
+<body>
+<div class="dashboard-shell">
+    <aside class="sidebar">
+        <div><h2>Donaciones</h2><p>Sistema de Gestion</p></div>
+        <div class="user-box"><strong th:text="${usuarioNombre}">Usuario</strong><span th:text="${usuarioRol}">Rol</span></div>
+        <ul class="menu">
+            <th:block th:if="${isRoleDonante}">
+                <li><a th:href="@{/home}">Dashboard</a></li>
+                <li><a th:href="@{/donaciones}">Mis Donaciones</a></li>
+                <li><a th:href="@{/campanias}">Campanias</a></li>
+                <li class="active"><a th:href="@{/mi-perfil}">Mi Perfil</a></li>
+                <li><a th:href="@{/mis-reportes}">Reportes</a></li>
+            </th:block>
+            <th:block th:if="${isRoleComunidad}">
+                <li><a th:href="@{/home}">Dashboard</a></li>
+                <li><a th:href="@{/comunidades}">Comunidades</a></li>
+                <li><a th:href="@{/campanias}">Campanias</a></li>
+                <li class="active"><a th:href="@{/mi-perfil}">Mi Perfil</a></li>
+                <li><a th:href="@{/mis-reportes}">Reportes</a></li>
+            </th:block>
+        </ul>
+        <a class="logout" th:href="@{/logout}">Cerrar Sesion</a>
+    </aside>
+
+    <main class="main">
+        <p th:if="${flashMessage}" class="flash" th:classappend="${flashError} ? ' flash-error' : ' flash-ok'" th:text="${flashMessage}"></p>
+        <div class="top-title">
+            <div>
+                <h1>Mi Perfil</h1>
+                <p class="muted">Actualiza tus datos de contacto y ubicacion</p>
+            </div>
+        </div>
+
+        <section class="content-grid">
+            <article class="panel">
+                <div th:if="${perfilTipo == 'donante' and perfilDonante != null}">
+                    <h3>Perfil de Donante</h3>
+                    <form method="post" th:action="@{/mi-perfil}" class="form-grid">
+                        <input type="hidden" name="id_donante" th:value="${perfilDonante.idDonante}">
+                        <div><label>Nombre</label><input type="text" name="nombre" required th:value="${perfilDonante.nombre}"></div>
+                        <div><label>Tipo</label><input type="text" name="tipo_donante" th:value="${perfilDonante.tipoDonante}" readonly></div>
+                        <div><label>Email</label><input type="email" name="email" th:value="${perfilDonante.email}"></div>
+                        <div><label>Telefono</label><input type="text" name="telefono" th:value="${perfilDonante.telefono}"></div>
+                        <div class="full"><label>Direccion</label><input type="text" name="direccion" th:value="${perfilDonante.direccion}"></div>
+                        <div>
+                            <label>Pais</label>
+                            <select name="id_pais" required>
+                                <option th:each="p : ${paises}" th:value="${p.idPais}" th:text="${p.nombre}"
+                                        th:selected="${perfilDonante.pais != null and perfilDonante.pais.idPais == p.idPais}"></option>
+                            </select>
+                        </div>
+                        <div class="full form-actions"><button type="submit">Guardar Perfil</button></div>
+                    </form>
+                </div>
+
+                <div th:if="${perfilTipo == 'comunidad' and perfilComunidad != null}">
+                    <h3>Perfil de Comunidad</h3>
+                    <form method="post" th:action="@{/mi-perfil}" class="form-grid">
+                        <input type="hidden" name="accion" value="actualizar_perfil">
+                        <input type="hidden" name="id_comunidad" th:value="${perfilComunidad.idComunidad}">
+                        <div><label>Nombre</label><input type="text" name="nombre" required th:value="${perfilComunidad.nombre}"></div>
+                        <div><label>Ubicacion</label><input type="text" name="ubicacion" th:value="${perfilComunidad.ubicacion}"></div>
+                        <div><label>Poblacion beneficiaria</label><input type="number" name="cantidad_beneficiarios" min="0" th:value="${perfilComunidad.cantidadBeneficiarios}"></div>
+                        <div>
+                            <label>Pais</label>
+                            <select name="id_pais" required>
+                                <option th:each="p : ${paises}" th:value="${p.idPais}" th:text="${p.nombre}"
+                                        th:selected="${perfilComunidad.pais != null and perfilComunidad.pais.idPais == p.idPais}"></option>
+                            </select>
+                        </div>
+                        <div class="full"><label>Descripcion</label><textarea name="descripcion" rows="3" th:text="${perfilComunidad.descripcion}"></textarea></div>
+                        <div class="full form-actions"><button type="submit">Guardar Perfil</button></div>
+                    </form>
+
+                    <hr style="margin:18px 0;border:none;border-top:1px solid #e0e5de;">
+                    <h3>Responsables de la Comunidad</h3>
+                    <form method="post" th:action="@{/mi-perfil}" class="form-grid">
+                        <input type="hidden" name="accion" value="agregar_responsable">
+                        <input type="hidden" name="id_comunidad" th:value="${perfilComunidad.idComunidad}">
+                        <div><label>Nombre</label><input type="text" name="nombre_responsable" required></div>
+                        <div><label>Cargo</label><input type="text" name="cargo_responsable" placeholder="Ej. Presidenta comunal"></div>
+                        <div><label>Telefono</label><input type="text" name="telefono_responsable"></div>
+                        <div><label>Email</label><input type="email" name="email_responsable"></div>
+                        <div class="full form-actions"><button type="submit">Agregar Responsable</button></div>
+                    </form>
+
+                    <div class="table-wrap" th:if="${responsablesComunidad != null and !#lists.isEmpty(responsablesComunidad)}" style="margin-top:12px;">
+                        <table class="table-fin">
+                            <thead>
+                            <tr>
+                                <th>Nombre</th>
+                                <th>Cargo</th>
+                                <th>Telefono</th>
+                                <th>Email</th>
+                                <th>Estado</th>
+                                <th>Accion</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:each="r : ${responsablesComunidad}">
+                                <td th:text="${r.nombre}">-</td>
+                                <td th:text="${r.cargo}">-</td>
+                                <td th:text="${r.telefono}">-</td>
+                                <td th:text="${r.email}">-</td>
+                                <td th:text="${r.activo ? 'Activo' : 'Inactivo'}">Activo</td>
+                                <td>
+                                    <form th:if="${r.activo}" method="post" th:action="@{/mi-perfil}" class="inline-form">
+                                        <input type="hidden" name="accion" value="desactivar_responsable">
+                                        <input type="hidden" name="id_responsable" th:value="${r.idResponsable}">
+                                        <button class="btn-mini btn-danger" type="submit">Desactivar</button>
+                                    </form>
+                                </td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <p th:if="${(perfilTipo == 'donante' and perfilDonante == null) or (perfilTipo == 'comunidad' and perfilComunidad == null)}" class="muted">
+                    No se encontro un perfil vinculado para tu cuenta.
+                </p>
+            </article>
+        </section>
+    </main>
+</div>
+</body>
+</html>

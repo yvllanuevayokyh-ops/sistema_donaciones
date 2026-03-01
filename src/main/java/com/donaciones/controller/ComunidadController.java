@@ -174,6 +174,7 @@ public class ComunidadController {
         String descripcion = safe(request.getParameter("descripcion"));
         String beneficiarios = safe(request.getParameter("cantidad_beneficiarios"));
         String idPais = safe(request.getParameter("id_pais"));
+        Boolean estado = parseEstado(request.getParameter("estado"));
 
         if (nombre.isEmpty() || idPais.isEmpty()) {
             request.getSession().setAttribute("mensaje", "Error: nombre y pais son requeridos");
@@ -188,6 +189,9 @@ public class ComunidadController {
                 parseInt(beneficiarios, 0),
                 Integer.parseInt(idPais)
         );
+        if (newId > 0 && Boolean.FALSE.equals(estado)) {
+            comunidadDAO.cambiarActivo(newId, false);
+        }
 
         request.getSession().setAttribute("mensaje", "Comunidad registrada correctamente");
         if (newId > 0) {
@@ -204,6 +208,7 @@ public class ComunidadController {
         String descripcion = safe(request.getParameter("descripcion"));
         String beneficiarios = safe(request.getParameter("cantidad_beneficiarios"));
         String idPais = safe(request.getParameter("id_pais"));
+        Boolean estado = parseEstado(request.getParameter("estado"));
 
         if (idComunidad == null || nombre.isEmpty() || idPais.isEmpty()) {
             request.getSession().setAttribute("mensaje", "Error: datos incompletos para editar");
@@ -219,6 +224,9 @@ public class ComunidadController {
                 parseInt(beneficiarios, 0),
                 Integer.parseInt(idPais)
         );
+        if (estado != null) {
+            comunidadDAO.cambiarActivo(idComunidad, estado);
+        }
 
         request.getSession().setAttribute("mensaje", "Comunidad actualizada correctamente");
         response.sendRedirect(request.getContextPath() + "/comunidades?id=" + idComunidad);
@@ -294,6 +302,20 @@ public class ComunidadController {
             return null;
         }
         return 1;
+    }
+
+    private Boolean parseEstado(String value) {
+        String v = safe(value).trim();
+        if (v.isEmpty()) {
+            return null;
+        }
+        if ("1".equals(v) || "ACTIVO".equalsIgnoreCase(v) || "TRUE".equalsIgnoreCase(v)) {
+            return true;
+        }
+        if ("0".equals(v) || "INACTIVO".equalsIgnoreCase(v) || "FALSE".equalsIgnoreCase(v)) {
+            return false;
+        }
+        return null;
     }
 
     private <T> List<T> safeList(List<T> rows) {

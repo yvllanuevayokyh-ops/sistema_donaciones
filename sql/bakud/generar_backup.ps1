@@ -8,6 +8,7 @@ $bakudDir = Join-Path $RootPath "sql\bakud"
 $outFile = Join-Path $bakudDir "sistema_donaciones_backup.sql"
 
 $parts = @(
+    "sql\schema_base.sql",
     "sql\roles_permisos_base.sql",
     "sql\sp_institucion_base.sql",
     "sql\sp_campania_base.sql",
@@ -31,7 +32,7 @@ $header = @(
     "-- Backup funcional consolidado",
     "-- Generado: $(Get-Date -Format 'yyyy-MM-dd HH:mm:ss')",
     "-- Base: sistema_donaciones",
-    "USE sistema_donaciones;",
+    "-- Nota: schema_base.sql crea y selecciona la base de datos",
     ""
 )
 Set-Content -Path $outFile -Encoding UTF8 -Value $header

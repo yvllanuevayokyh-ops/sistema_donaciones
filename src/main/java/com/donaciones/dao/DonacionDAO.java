@@ -5,17 +5,20 @@ import com.donaciones.util.JPAUtil;
 import java.math.BigDecimal;
 import java.sql.Date;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityTransaction;
 import javax.persistence.ParameterMode;
 import javax.persistence.Query;
 import javax.persistence.StoredProcedureQuery;
+import org.hibernate.procedure.ProcedureCall;
 
 public class DonacionDAO {
 
     public ResultadoPaginado<Donacion> buscarYPaginar(
-            String q, String estado, Integer activo, int pagina, int porPagina) {
+            String q, String estado, Integer activo, String tipoDonante, int pagina, int porPagina) {
         EntityManager em = JPAUtil.getInstance().getEntityManager();
         ResultadoPaginado<Donacion> resultado = new ResultadoPaginado<Donacion>();
         try {
@@ -24,6 +27,7 @@ public class DonacionDAO {
             int offset = (page - 1) * size;
             String normalizedQ = safe(q).trim();
             String normalizedEstado = safe(estado).trim();
+            String normalizedTipo = safe(tipoDonante).trim();
             String idLike = normalizedQ.toUpperCase().replace("DON-", "").replace(" ", "");
             String textLike = "%" + normalizedQ.toUpperCase() + "%";
 
@@ -55,6 +59,7 @@ public class DonacionDAO {
                 sqlCount.append(" AND d.activo = ?");
                 countParams.add(activo);
             }
+            appendTipoDonanteFilter(sqlCount, countParams, normalizedTipo);
 
             Query qCount = em.createNativeQuery(sqlCount.toString());
             setPositionalParams(qCount, countParams);
@@ -88,6 +93,7 @@ public class DonacionDAO {
                 sqlList.append(" AND d.activo = ?");
                 listParams.add(activo);
             }
+            appendTipoDonanteFilter(sqlList, listParams, normalizedTipo);
 
             sqlList.append(" ORDER BY d.fecha_donacion DESC, d.id_donacion DESC LIMIT ?, ?");
             listParams.add(offset);
@@ -244,6 +250,7 @@ public class DonacionDAO {
             sp.registerStoredProcedureParameter("p_fecha_donacion", Date.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_monto", BigDecimal.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_descripcion", String.class, ParameterMode.IN);
+            enableNullParam(sp, "p_monto");
             sp.setParameter("p_id_donante", idDonante);
             sp.setParameter("p_id_campania", idCampania);
             sp.setParameter("p_tipo_donacion", safe(tipoDonacion));
@@ -282,6 +289,7 @@ public class DonacionDAO {
             sp.registerStoredProcedureParameter("p_fecha_donacion", Date.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_monto", BigDecimal.class, ParameterMode.IN);
             sp.registerStoredProcedureParameter("p_descripcion", String.class, ParameterMode.IN);
+            enableNullParam(sp, "p_monto");
             sp.setParameter("p_id_donacion", idDonacion);
             sp.setParameter("p_id_donante", idDonante);
             sp.setParameter("p_id_campania", idCampania);
@@ -338,6 +346,69 @@ public class DonacionDAO {
         }
     }
 
+    public List<Donacion> listarPorDonante(int idDonante) {
+        EntityManager em = JPAUtil.getInstance().getEntityManager();
+        try {
+            return em.createQuery(
+                            "SELECT d FROM Donacion d WHERE d.donante.idDonante = :id " +
+                                    "ORDER BY d.fechaDonacion DESC, d.idDonacion DESC",
+                            Donacion.class
+                    ).setParameter("id", idDonante)
+                    .getResultList();
+        } finally {
+            em.close();
+        }
+    }
+
+    public Map<Integer, String> obtenerEntregadorPorDonaciones(List<Integer> idsDonacion) {
+        Map<Integer, String> entregadores = new LinkedHashMap<Integer, String>();
+        if (idsDonacion == null || idsDonacion.isEmpty()) {
+            return entregadores;
+        }
+
+        EntityManager em = JPAUtil.getInstance().getEntityManager();
+        try {
+            @SuppressWarnings("unchecked")
+            List<Object[]> rows = em.createNativeQuery(
+                    "SELECT e.id_donacion, COALESCE(MIN(v.nombre), 'Sin asignar') AS voluntario " +
+                            "FROM entrega_donacion e " +
+                            "LEFT JOIN asignacion_voluntario_entrega ave ON ave.id_entrega = e.id_entrega " +
+                            "LEFT JOIN voluntario v ON v.id_voluntario = ave.id_voluntario " +
+                            "WHERE e.id_donacion IN (:ids) " +
+                            "GROUP BY e.id_donacion"
+            ).setParameter("ids", idsDonacion).getResultList();
+
+            for (Object[] row : rows) {
+                entregadores.put(toInt(row[0]), safe(row[1]));
+            }
+            return entregadores;
+        } finally {
+            em.close();
+        }
+    }
+
+    public String obtenerEntregadorPorDonacion(Integer idDonacion) {
+        if (idDonacion == null) {
+            return "";
+        }
+
+        EntityManager em = JPAUtil.getInstance().getEntityManager();
+        try {
+            @SuppressWarnings("unchecked")
+            List<Object> rows = em.createNativeQuery(
+                    "SELECT COALESCE(MIN(v.nombre), 'Sin asignar') " +
+                            "FROM entrega_donacion e " +
+                            "LEFT JOIN asignacion_voluntario_entrega ave ON ave.id_entrega = e.id_entrega " +
+                            "LEFT JOIN voluntario v ON v.id_voluntario = ave.id_voluntario " +
+                            "WHERE e.id_donacion = ?"
+            ).setParameter(1, idDonacion).getResultList();
+
+            return rows.isEmpty() ? "" : safe(rows.get(0));
+        } finally {
+            em.close();
+        }
+    }
+
     private int extractGeneratedId(StoredProcedureQuery sp) {
         @SuppressWarnings("unchecked")
         List<Object> result = sp.getResultList();
@@ -358,6 +429,22 @@ public class DonacionDAO {
         }
     }
 
+    private void appendTipoDonanteFilter(StringBuilder sql, List<Object> params, String tipoDonante) {
+        if (tipoDonante == null || tipoDonante.isBlank() || "TODOS".equalsIgnoreCase(tipoDonante)) {
+            return;
+        }
+        if ("PERSONA".equalsIgnoreCase(tipoDonante)) {
+            sql.append(" AND UPPER(COALESCE(dn.tipo_donante,'')) LIKE 'PERSONA%'");
+            return;
+        }
+        if ("INSTITUCION".equalsIgnoreCase(tipoDonante)) {
+            sql.append(" AND UPPER(COALESCE(dn.tipo_donante,'')) NOT LIKE 'PERSONA%'");
+            return;
+        }
+        sql.append(" AND UPPER(COALESCE(dn.tipo_donante,'')) = ?");
+        params.add(tipoDonante.toUpperCase());
+    }
+
     private int toInt(Object value) {
         if (value == null) {
             return 0;
@@ -374,6 +461,16 @@ public class DonacionDAO {
 
     private String safe(Object value) {
         return value == null ? "" : String.valueOf(value);
+    }
+
+    private void enableNullParam(StoredProcedureQuery sp, String paramName) {
+        try {
+            sp.unwrap(ProcedureCall.class)
+                    .getParameterRegistration(paramName)
+                    .enablePassingNulls(true);
+        } catch (RuntimeException ignored) {
+            // Fallback: if provider does not support this, keep default behavior.
+        }
     }
 
 }

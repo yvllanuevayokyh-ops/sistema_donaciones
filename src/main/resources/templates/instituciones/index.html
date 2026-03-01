@@ -6,6 +6,7 @@
     <title>Instituciones - Sistema Donaciones</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script th:src="@{/js/app.js}" defer></script>
 </head>
 <body>
 <div class="dashboard-shell">
@@ -15,6 +16,7 @@
         <ul class="menu">
             <li><a th:href="@{/home}">Dashboard</a></li>
             <li><a th:href="@{/roles}">Roles y Permisos</a></li>
+            <li><a th:href="@{/catalogos}">Catalogos</a></li>
             <li><a th:href="@{/donaciones}">Donaciones</a></li>
             <li><a th:href="@{/comunidades}">Comunidades</a></li>
             <li class="active"><a th:href="@{/instituciones}">Instituciones</a></li>
@@ -33,10 +35,13 @@
                 <h1>Instituciones Donantes</h1>
                 <p class="muted">Gestion de instituciones</p>
             </div>
-            <a class="btn-new" th:href="@{/instituciones(nuevo=1,q=${q},situacion=${situacion},page=${currentPage})}">+ Nueva Institucion</a>
+            <div class="top-actions">
+                <a class="btn-new btn-alt" th:href="@{/export/excel(modulo='instituciones',q=${q},situacion=${situacion})}">Exportar Excel</a>
+                <a class="btn-new" th:href="@{/instituciones(nuevo=1,q=${q},situacion=${situacion},page=${currentPage})}">+ Nueva Institucion</a>
+            </div>
         </div>
 
-        <form method="get" th:action="@{/instituciones}" class="toolbar toolbar-simple">
+        <form th:if="${!showForm}" method="get" th:action="@{/instituciones}" class="toolbar toolbar-simple" data-dynamic-search="true">
             <input type="hidden" name="page" value="1">
             <input type="text" name="q" th:value="${q}" placeholder="Buscar por nombre, pais o direccion">
             <select name="situacion">
@@ -75,6 +80,13 @@
                             <option value="">Selecciona pais</option>
                             <option th:each="p : ${paises}" th:value="${p.idPais}" th:text="${p.nombre}"
                                     th:selected="${edicion != null and edicion.pais != null and edicion.pais.idPais == p.idPais}"></option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Estado</label>
+                        <select name="estado">
+                            <option value="1" th:selected="${edicion == null or edicion.activo}">Activo</option>
+                            <option value="0" th:selected="${edicion != null and !edicion.activo}">Inactivo</option>
                         </select>
                     </div>
                     <div th:if="${edicion == null}">

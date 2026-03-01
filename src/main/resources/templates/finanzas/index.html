@@ -6,6 +6,7 @@
     <title>Finanzas - Sistema Donaciones</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script th:src="@{/js/app.js}" defer></script>
 </head>
 <body>
 <div class="dashboard-shell">
@@ -15,6 +16,7 @@
         <ul class="menu">
             <li><a th:href="@{/home}">Dashboard</a></li>
             <li><a th:href="@{/roles}">Roles y Permisos</a></li>
+            <li><a th:href="@{/catalogos}">Catalogos</a></li>
             <li><a th:href="@{/donaciones}">Donaciones</a></li>
             <li><a th:href="@{/comunidades}">Comunidades</a></li>
             <li><a th:href="@{/instituciones}">Instituciones</a></li>
@@ -37,9 +39,24 @@
                 <p class="muted">Fecha reporte: <strong th:text="${fechaReporte}"></strong> | Hora reporte: <strong th:text="${horaReporte}"></strong></p>
             </div>
             <div class="top-actions">
-                <a class="btn-new btn-alt" th:href="@{/finanzas/excel}">Descargar Excel</a>
+                <a class="btn-new btn-alt" th:href="@{/finanzas/excel(id_campania=${idCampania},id_comunidad=${idComunidad})}">Descargar Excel</a>
             </div>
         </div>
+
+        <form method="get" th:action="@{/finanzas}" class="toolbar">
+            <select name="id_campania">
+                <option value="">Campania: Todas</option>
+                <option th:each="c : ${campanias}" th:value="${c.idCampania}" th:text="${c.nombre}"
+                        th:selected="${idCampania != null and idCampania == c.idCampania}"></option>
+            </select>
+            <select name="id_comunidad">
+                <option value="">Comunidad: Todas</option>
+                <option th:each="c : ${comunidades}" th:value="${c.idComunidad}" th:text="${c.nombre}"
+                        th:selected="${idComunidad != null and idComunidad == c.idComunidad}"></option>
+            </select>
+            <button type="submit">Filtrar</button>
+            <a class="btn-cancel" th:href="@{/finanzas}">Limpiar</a>
+        </form>
 
         <section class="stats finance-stats">
             <article class="stat"><h3>Total Recaudado</h3><strong th:text="${'S/ ' + #numbers.formatDecimal(totalRecaudado, 1, 'COMMA', 2, 'POINT')}">S/ 0.00</strong><small th:text="${'Ultima donacion: ' + ultimaDonacion}">Ultima donacion: sin registro</small></article>

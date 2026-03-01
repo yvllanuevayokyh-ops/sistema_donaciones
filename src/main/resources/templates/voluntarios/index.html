@@ -6,6 +6,7 @@
     <title>Voluntarios - Sistema Donaciones</title>
     <link rel="stylesheet" th:href="@{/css/app.css}">
     <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script th:src="@{/js/app.js}" defer></script>
 </head>
 <body>
 <div class="dashboard-shell">
@@ -15,6 +16,7 @@
         <ul class="menu">
             <li><a th:href="@{/home}">Dashboard</a></li>
             <li><a th:href="@{/roles}">Roles y Permisos</a></li>
+            <li><a th:href="@{/catalogos}">Catalogos</a></li>
             <li><a th:href="@{/donaciones}">Donaciones</a></li>
             <li><a th:href="@{/comunidades}">Comunidades</a></li>
             <li><a th:href="@{/instituciones}">Instituciones</a></li>
@@ -30,16 +32,18 @@
         <p th:if="${flashMessage}" class="flash" th:classappend="${flashError} ? ' flash-error' : ' flash-ok'" th:text="${flashMessage}"></p>
         <div class="top-title">
             <div><h1>Voluntarios</h1><p class="muted">Gestion del equipo de apoyo</p></div>
-            <a class="btn-new" th:href="@{/voluntarios(nuevo=1,q=${q},situacion=${situacion},page=${currentPage})}">+ Agregar Voluntario</a>
+            <div class="top-actions">
+                <a class="btn-new btn-alt" th:href="@{/export/excel(modulo='voluntarios',q=${q},situacion=${situacion})}">Exportar Excel</a>
+                <a class="btn-new" th:href="@{/voluntarios(nuevo=1,q=${q},situacion=${situacion},page=${currentPage})}">+ Agregar Voluntario</a>
+            </div>
         </div>
 
         <section class="stats">
             <article class="stat"><h3>Voluntarios Activos</h3><strong th:text="${totalActivos}">0</strong></article>
             <article class="stat"><h3>Entregas Completadas</h3><strong th:text="${entregasCompletadas}">0</strong></article>
-            <article class="stat"><h3>Horas de Voluntariado</h3><strong th:text="${horasVoluntariado}">0</strong></article>
         </section>
 
-        <form method="get" th:action="@{/voluntarios}" class="toolbar toolbar-simple">
+        <form th:if="${!showForm}" method="get" th:action="@{/voluntarios}" class="toolbar toolbar-simple" data-dynamic-search="true">
             <input type="hidden" name="page" value="1">
             <input type="text" name="q" th:value="${q}" placeholder="Buscar voluntarios">
             <select name="situacion">
@@ -60,6 +64,21 @@
                     <div><label>Email</label><input type="email" name="email" th:value="${edicion != null ? edicion.email : ''}"></div>
                     <div><label>Telefono</label><input type="text" name="telefono" th:value="${edicion != null ? edicion.telefono : ''}"></div>
                     <div><label>Fecha ingreso</label><input type="date" name="fecha_ingreso" required th:value="${edicion != null and edicion.fechaIngreso != null ? edicion.fechaIngreso : hoy}"></div>
+                    <div>
+                        <label>Campania asignada</label>
+                        <select name="id_campania">
+                            <option value="">Sin campania</option>
+                            <option th:each="c : ${campanias}" th:value="${c.idCampania}" th:text="${c.nombre}"
+                                    th:selected="${edicion != null and edicion.campania != null and edicion.campania.idCampania == c.idCampania}"></option>
+                        </select>
+                    </div>
+                    <div>
+                        <label>Estado</label>
+                        <select name="estado">
+                            <option value="1" th:selected="${edicion == null or edicion.estado}">Activo</option>
+                            <option value="0" th:selected="${edicion != null and !edicion.estado}">Inactivo</option>
+                        </select>
+                    </div>
                     <div class="full form-actions"><button type="submit" th:text="${edicion != null ? 'Guardar Cambios' : 'Guardar Voluntario'}"></button><a class="btn-cancel" th:href="@{/voluntarios(q=${q},situacion=${situacion},page=${currentPage},id=${selectedId})}">Cancelar</a></div>
                 </form>
             </article>
@@ -76,6 +95,7 @@
                     </div>
                     <p th:text="${v.email}"></p>
                     <small th:text="${(v.telefono != null ? v.telefono : '') + ' - Ingreso: ' + (v.fechaIngreso != null ? v.fechaIngreso : '')}"></small>
+                    <small>Campania: <span th:text="${v.campania != null ? v.campania.nombre : 'Sin campania'}">Sin campania</span></small>
                     <div class="row-actions">
                         <a class="btn-mini btn-edit" th:href="@{/voluntarios(editarId=${v.idVoluntario},q=${q},situacion=${situacion},page=${currentPage})}">Editar</a>
                         <form th:if="${v.estado}" method="post" th:action="@{/voluntarios}" class="inline-form"><input type="hidden" name="accion" value="eliminar"><input type="hidden" name="id" th:value="${v.idVoluntario}"><button class="btn-mini btn-danger" type="submit">Eliminar</button></form>
@@ -98,9 +118,8 @@
                     <p><strong>Telefono:</strong> <span th:text="${detalle.telefono}"></span></p>
                     <p><strong>Ingreso:</strong> <span th:text="${detalle.fechaIngreso}"></span></p>
                     <p><strong>Estado:</strong> <span th:text="${detalle.estado ? 'Activo' : 'Inactivo'}"></span></p>
+                    <p><strong>Campania:</strong> <span th:text="${detalle.campania != null ? detalle.campania.nombre : 'Sin campania'}"></span></p>
                     <p><strong>Entregas:</strong> <span th:text="${entregasDetalle}"></span></p>
-                    <p><strong>Completadas:</strong> <span th:text="${entregasCompletadasDetalle}"></span></p>
-                    <p><strong>Horas estimadas:</strong> <span th:text="${entregasCompletadasDetalle * 4}"></span></p>
                 </div>
                 <p th:if="${detalle == null}" class="muted">Selecciona un voluntario para ver detalles.</p>
             </aside>
