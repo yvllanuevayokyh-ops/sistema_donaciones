@@ -25,8 +25,8 @@
         <properties>
             <property name="javax.persistence.jdbc.driver" value="com.mysql.cj.jdbc.Driver"/>
             <property name="javax.persistence.jdbc.url"
-                      value="jdbc:mysql://localhost:3306/sistema_donaciones?useSSL=false&amp;allowPublicKeyRetrieval=true&amp;serverTimezone=UTC&amp;useUnicode=true&amp;characterEncoding=utf8&amp;connectionCollation=utf8mb4_unicode_ci"/>
-            <property name="javax.persistence.jdbc.user" value="root"/>
+                      value="jdbc:mysql://server-db-sd-server-db-sd.a.aivencloud.com:14732/sistema_donaciones?sslMode=REQUIRED&amp;serverTimezone=UTC&amp;useUnicode=true&amp;characterEncoding=utf8&amp;connectionCollation=utf8mb4_unicode_ci"/>
+            <property name="javax.persistence.jdbc.user" value="avnadmin"/>
             <property name="javax.persistence.jdbc.password" value=""/>
 
             <property name="hibernate.dialect" value="org.hibernate.dialect.MySQL5InnoDBDialect"/>

@@ -3,6 +3,8 @@ package com.donaciones.util;
 import javax.persistence.EntityManager;
 import javax.persistence.EntityManagerFactory;
 import javax.persistence.Persistence;
+import java.util.HashMap;
+import java.util.Map;
 
 public final class JPAUtil {
 
@@ -11,7 +13,16 @@ public final class JPAUtil {
     private final EntityManagerFactory emf;
 
     private JPAUtil() {
-        emf = Persistence.createEntityManagerFactory(PERSISTENCE_UNIT);
+        Map<String, Object> overrides = new HashMap<String, Object>();
+        putIfPresent(overrides, "javax.persistence.jdbc.url", readConfig("SD_DB_URL", "sd.db.url"));
+        putIfPresent(overrides, "javax.persistence.jdbc.user", readConfig("SD_DB_USER", "sd.db.user"));
+        putIfPresent(overrides, "javax.persistence.jdbc.password", readConfig("SD_DB_PASSWORD", "sd.db.password"));
+
+        if (overrides.isEmpty()) {
+            emf = Persistence.createEntityManagerFactory(PERSISTENCE_UNIT);
+        } else {
+            emf = Persistence.createEntityManagerFactory(PERSISTENCE_UNIT, overrides);
+        }
     }
 
     public static synchronized JPAUtil getInstance() {
@@ -44,5 +55,23 @@ public final class JPAUtil {
 
     public void close() {
         cerrar();
+    }
+
+    private void putIfPresent(Map<String, Object> target, String key, String value) {
+        if (value != null && !value.isBlank()) {
+            target.put(key, value);
+        }
+    }
+
+    private String readConfig(String envKey, String propertyKey) {
+        String envValue = System.getenv(envKey);
+        if (envValue != null && !envValue.isBlank()) {
+            return envValue.trim();
+        }
+        String propValue = System.getProperty(propertyKey);
+        if (propValue != null && !propValue.isBlank()) {
+            return propValue.trim();
+        }
+        return "";
     }
 }
