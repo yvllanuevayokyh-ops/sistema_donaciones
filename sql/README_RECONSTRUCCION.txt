@@ -22,7 +22,7 @@ Que ejecuta en orden:
 9) seed_datos_humanizados.sql
 
 Credenciales iniciales:
-- admin@donaciones.local / admin123
-- contacto@puentesnorte.org / donante123
-- lucia.herrera@email.com / persona123
-- comunidad@losandes.org / comunidad123
+- admin@donaciones.org / 123456
+- institucion@donaciones.org / 123456
+- persona@email.com / 123456
+- comunidad@donaciones.org / 123456

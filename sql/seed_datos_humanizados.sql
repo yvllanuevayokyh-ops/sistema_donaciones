@@ -1,4 +1,4 @@
-﻿USE sistema_donaciones;
+USE sistema_donaciones;
 
 -- ============================================================
 -- SEED HUMANIZADO Y CREIBLE
@@ -29,11 +29,11 @@ WHERE NOT EXISTS (SELECT 1 FROM pais WHERE UPPER(nombre) = 'CHILE');
 -- Donantes (institucionales y persona natural)
 -- ------------------------------
 INSERT INTO donante (nombre, email, telefono, direccion, tipo_donante, id_pais, fecha_registro, activo)
-SELECT 'Fundacion Puentes del Norte', 'contacto@puentesnorte.org', '+51 944111221',
+SELECT 'Fundacion Puentes del Norte', 'institucion@donaciones.org', '+51 944111221',
        'Av. Alfonso Ugarte 223, Chiclayo', 'Fundacion',
        (SELECT id_pais FROM pais WHERE UPPER(nombre) = 'PERU' LIMIT 1), '2026-01-08', 1
 FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM donante WHERE email = 'contacto@puentesnorte.org');
+WHERE NOT EXISTS (SELECT 1 FROM donante WHERE email = 'institucion@donaciones.org');
 
 INSERT INTO donante (nombre, email, telefono, direccion, tipo_donante, id_pais, fecha_registro, activo)
 SELECT 'Asociacion Horizonte Verde', 'donaciones@horizonteverde.pe', '+51 955300410',
@@ -57,11 +57,11 @@ FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM donante WHERE email = 'alianzas@redpacifico.org');
 
 INSERT INTO donante (nombre, email, telefono, direccion, tipo_donante, id_pais, fecha_registro, activo)
-SELECT 'Lucia Herrera', 'lucia.herrera@email.com', '+51 987101221',
+SELECT 'Lucia Herrera', 'persona@email.com', '+51 987101221',
        'Urbanizacion Los Geranios 222, Piura', 'Persona Natural',
        (SELECT id_pais FROM pais WHERE UPPER(nombre) = 'PERU' LIMIT 1), '2026-01-17', 1
 FROM DUAL
-WHERE NOT EXISTS (SELECT 1 FROM donante WHERE email = 'lucia.herrera@email.com');
+WHERE NOT EXISTS (SELECT 1 FROM donante WHERE email = 'persona@email.com');
 
 INSERT INTO donante (nombre, email, telefono, direccion, tipo_donante, id_pais, fecha_registro, activo)
 SELECT 'Jorge Paredes', 'jorge.paredes@email.com', '+51 968450220',
@@ -162,7 +162,7 @@ FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM donacion WHERE descripcion = 'Transferencia para adquisicion de tanques de agua comunitarios');
 
 INSERT INTO donacion (id_donante, id_campania, tipo_donacion, estado_donacion, fecha_donacion, monto, descripcion, activo)
-SELECT (SELECT id_donante FROM donante WHERE email = 'contacto@puentesnorte.org' LIMIT 1),
+SELECT (SELECT id_donante FROM donante WHERE email = 'institucion@donaciones.org' LIMIT 1),
        (SELECT id_campania FROM campania WHERE UPPER(nombre) = 'SALUD COMUNITARIA PREVENTIVA' LIMIT 1),
        'Monetaria', 'En transito', '2026-02-03', 9500.00,
        'Fondo para compra de medicamentos de atencion primaria', 1
@@ -170,7 +170,7 @@ FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM donacion WHERE descripcion = 'Fondo para compra de medicamentos de atencion primaria');
 
 INSERT INTO donacion (id_donante, id_campania, tipo_donacion, estado_donacion, fecha_donacion, monto, descripcion, activo)
-SELECT (SELECT id_donante FROM donante WHERE email = 'lucia.herrera@email.com' LIMIT 1),
+SELECT (SELECT id_donante FROM donante WHERE email = 'persona@email.com' LIMIT 1),
        (SELECT id_campania FROM campania WHERE UPPER(nombre) = 'AULAS DIGNAS 2026' LIMIT 1),
        'Monetaria', 'Pendiente', '2026-02-05', 2500.00,
        'Aporte para compra de carpetas y pizarras para dos aulas rurales', 1
@@ -210,7 +210,7 @@ FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM donacion WHERE descripcion = 'Entrega de 20 escritorios metalicos y 40 sillas escolares');
 
 INSERT INTO donacion (id_donante, id_campania, tipo_donacion, estado_donacion, fecha_donacion, monto, descripcion, activo)
-SELECT (SELECT id_donante FROM donante WHERE email = 'contacto@puentesnorte.org' LIMIT 1),
+SELECT (SELECT id_donante FROM donante WHERE email = 'institucion@donaciones.org' LIMIT 1),
        NULL,
        'Monetaria', 'Pendiente', '2026-02-10', 3200.00,
        'Fondo libre para emergencias de comunidades afectadas por lluvias', 1
@@ -226,7 +226,7 @@ FROM DUAL
 WHERE NOT EXISTS (SELECT 1 FROM donacion WHERE descripcion = 'Cobertura de compras para suplemento nutricional trimestral');
 
 INSERT INTO donacion (id_donante, id_campania, tipo_donacion, estado_donacion, fecha_donacion, monto, descripcion, activo)
-SELECT (SELECT id_donante FROM donante WHERE email = 'lucia.herrera@email.com' LIMIT 1),
+SELECT (SELECT id_donante FROM donante WHERE email = 'persona@email.com' LIMIT 1),
        NULL,
        'Recurso', 'En transito', '2026-02-12', NULL,
        'Donacion de 12 cajas de utiles escolares para primaria', 1

@@ -296,32 +296,80 @@ ON DUPLICATE KEY UPDATE
     descripcion = VALUES(descripcion);
 
 INSERT INTO usuario_sistema (nombre, usuario, password, id_rol, estado)
-SELECT 'Administrador Sistema', 'admin@donaciones.local', 'admin123', 1, 1
+SELECT 'Administrador', 'admin@donaciones.org', '123456', 1, 1
 FROM DUAL
 WHERE NOT EXISTS (
-    SELECT 1 FROM usuario_sistema WHERE usuario = 'admin@donaciones.local'
+    SELECT 1 FROM usuario_sistema WHERE usuario = 'admin@donaciones.org'
 );
 
-INSERT INTO usuario_sistema (nombre, usuario, password, id_rol, estado)
-SELECT 'Fundacion Puentes del Norte', 'contacto@puentesnorte.org', 'donante123', 2, 1
-FROM DUAL
-WHERE NOT EXISTS (
-    SELECT 1 FROM usuario_sistema WHERE usuario = 'contacto@puentesnorte.org'
-);
+UPDATE usuario_sistema
+SET usuario='admin@donaciones.org', nombre='Administrador', password='123456', id_rol=1, estado=1
+WHERE usuario='admin@donaciones.local'
+  AND NOT EXISTS (SELECT 1 FROM (SELECT id_usuario FROM usuario_sistema WHERE usuario='admin@donaciones.org' LIMIT 1) x);
+
+UPDATE usuario_sistema
+SET nombre='Administrador', password='123456', id_rol=1, estado=1
+WHERE usuario='admin@donaciones.org';
+
+DELETE FROM usuario_sistema
+WHERE usuario='admin@donaciones.local';
 
 INSERT INTO usuario_sistema (nombre, usuario, password, id_rol, estado)
-SELECT 'Lucia Herrera', 'lucia.herrera@email.com', 'persona123', 3, 1
+SELECT 'Institucion Donante', 'institucion@donaciones.org', '123456', 2, 1
 FROM DUAL
 WHERE NOT EXISTS (
-    SELECT 1 FROM usuario_sistema WHERE usuario = 'lucia.herrera@email.com'
+    SELECT 1 FROM usuario_sistema WHERE usuario = 'institucion@donaciones.org'
 );
 
+UPDATE usuario_sistema
+SET usuario='institucion@donaciones.org', nombre='Institucion Donante', password='123456', id_rol=2, estado=1
+WHERE usuario='contacto@puentesnorte.org'
+  AND NOT EXISTS (SELECT 1 FROM (SELECT id_usuario FROM usuario_sistema WHERE usuario='institucion@donaciones.org' LIMIT 1) x);
+
+UPDATE usuario_sistema
+SET nombre='Institucion Donante', password='123456', id_rol=2, estado=1
+WHERE usuario='institucion@donaciones.org';
+
+DELETE FROM usuario_sistema
+WHERE usuario='contacto@puentesnorte.org';
+
 INSERT INTO usuario_sistema (nombre, usuario, password, id_rol, estado)
-SELECT 'Comunidad Los Andes', 'comunidad@losandes.org', 'comunidad123', 4, 1
+SELECT 'Persona Natural', 'persona@email.com', '123456', 3, 1
 FROM DUAL
 WHERE NOT EXISTS (
-    SELECT 1 FROM usuario_sistema WHERE usuario = 'comunidad@losandes.org'
+    SELECT 1 FROM usuario_sistema WHERE usuario = 'persona@email.com'
 );
+
+UPDATE usuario_sistema
+SET usuario='persona@email.com', nombre='Persona Natural', password='123456', id_rol=3, estado=1
+WHERE usuario='lucia.herrera@email.com'
+  AND NOT EXISTS (SELECT 1 FROM (SELECT id_usuario FROM usuario_sistema WHERE usuario='persona@email.com' LIMIT 1) x);
+
+UPDATE usuario_sistema
+SET nombre='Persona Natural', password='123456', id_rol=3, estado=1
+WHERE usuario='persona@email.com';
+
+DELETE FROM usuario_sistema
+WHERE usuario='lucia.herrera@email.com';
+
+INSERT INTO usuario_sistema (nombre, usuario, password, id_rol, estado)
+SELECT 'Comunidad', 'comunidad@donaciones.org', '123456', 4, 1
+FROM DUAL
+WHERE NOT EXISTS (
+    SELECT 1 FROM usuario_sistema WHERE usuario = 'comunidad@donaciones.org'
+);
+
+UPDATE usuario_sistema
+SET usuario='comunidad@donaciones.org', nombre='Comunidad', password='123456', id_rol=4, estado=1
+WHERE usuario='comunidad@losandes.org'
+  AND NOT EXISTS (SELECT 1 FROM (SELECT id_usuario FROM usuario_sistema WHERE usuario='comunidad@donaciones.org' LIMIT 1) x);
+
+UPDATE usuario_sistema
+SET nombre='Comunidad', password='123456', id_rol=4, estado=1
+WHERE usuario='comunidad@donaciones.org';
+
+DELETE FROM usuario_sistema
+WHERE usuario='comunidad@losandes.org';
 
 INSERT INTO comunidad_responsable (id_comunidad, nombre, telefono, email, cargo, activo)
 SELECT c.id_comunidad, 'Rosa Quispe', '999111222', 'rosa.quispe@losandes.org', 'Presidenta comunal', 1
