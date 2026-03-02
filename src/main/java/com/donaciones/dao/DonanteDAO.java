@@ -70,7 +70,11 @@ public class DonanteDAO {
 
             @SuppressWarnings("unchecked")
             List<Donante> result = sp.getResultList();
-            return result.isEmpty() ? null : result.get(0);
+            if (!result.isEmpty()) {
+                return result.get(0);
+            }
+            // Fallback: perfil de Persona Natural no es devuelto por el SP de instituciones.
+            return em.find(Donante.class, idDonante);
         } finally {
             em.close();
         }
@@ -120,22 +124,18 @@ public class DonanteDAO {
         EntityTransaction tx = em.getTransaction();
         try {
             tx.begin();
-            StoredProcedureQuery sp = em.createStoredProcedureQuery("sp_institucion_editar");
-            sp.registerStoredProcedureParameter("p_id_donante", Integer.class, ParameterMode.IN);
-            sp.registerStoredProcedureParameter("p_nombre", String.class, ParameterMode.IN);
-            sp.registerStoredProcedureParameter("p_email", String.class, ParameterMode.IN);
-            sp.registerStoredProcedureParameter("p_telefono", String.class, ParameterMode.IN);
-            sp.registerStoredProcedureParameter("p_direccion", String.class, ParameterMode.IN);
-            sp.registerStoredProcedureParameter("p_tipo_donante", String.class, ParameterMode.IN);
-            sp.registerStoredProcedureParameter("p_id_pais", Integer.class, ParameterMode.IN);
-            sp.setParameter("p_id_donante", idDonante);
-            sp.setParameter("p_nombre", safe(nombre));
-            sp.setParameter("p_email", safe(email));
-            sp.setParameter("p_telefono", safe(telefono));
-            sp.setParameter("p_direccion", safe(direccion));
-            sp.setParameter("p_tipo_donante", safe(tipoDonante));
-            sp.setParameter("p_id_pais", idPais);
-            sp.execute();
+            em.createNativeQuery(
+                            "UPDATE donante SET nombre = ?, email = ?, telefono = ?, direccion = ?, " +
+                                    "tipo_donante = ?, id_pais = ? WHERE id_donante = ?"
+                    )
+                    .setParameter(1, safe(nombre))
+                    .setParameter(2, safe(email))
+                    .setParameter(3, safe(telefono))
+                    .setParameter(4, safe(direccion))
+                    .setParameter(5, safe(tipoDonante))
+                    .setParameter(6, idPais)
+                    .setParameter(7, idDonante)
+                    .executeUpdate();
             tx.commit();
         } catch (RuntimeException ex) {
             if (tx.isActive()) {
